@@ -1,0 +1,21 @@
+[submodule "hw/deps/migen"]
+	path = hw/deps/migen
+	url = https://github.com/m-labs/migen.git
+[submodule "hw/deps/litex"]
+	path = hw/deps/litex
+	url = https://github.com/enjoy-digital/litex.git
+[submodule "hw/deps/litedram"]
+	path = hw/deps/litedram
+	url = https://github.com/enjoy-digital/litedram.git
+[submodule "hw/deps/litex_boards"]
+	path = hw/deps/litex_boards
+	url = https://github.com/litex-hub/litex-boards.git
+[submodule "hw/deps/litehyperram"]
+	path = hw/deps/litehyperram
+	url = https://github.com/zeldin/litehyperram.git
+[submodule "hw/hw/deps/pythondata-cpu-vexriscv"]
+	path = hw/deps/pythondata-cpu-vexriscv
+	url = https://github.com/litex-hub/pythondata-cpu-vexriscv.git
+[submodule "hw/deps/pythondata-software-compiler_rt"]
+	path = hw/deps/pythondata-software-compiler_rt
+	url = https://github.com/litex-hub/pythondata-software-compiler_rt.git
