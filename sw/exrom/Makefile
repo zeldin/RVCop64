@@ -7,22 +7,22 @@ PATH_SEP   := /
 
 PACKAGE    := rom
 
-ifeq ($(LITEX),1)
-BASE_DIR   := ../../../../sw
-else
-BASE_DIR   := .
-endif
+BASE_DIR   := $(dir $(lastword $(MAKEFILE_LIST)))
 
 SRC_DIR    := $(BASE_DIR)/src
 LDSCRIPT   := $(BASE_DIR)/linker.cfg
 
 LFLAGS     := -C $(LDSCRIPT)
 
+ifeq ($(BASE_DIR),./)
 OBJ_DIR    := .obj
+else
+OBJ_DIR    := .
+endif
 
-ASOURCES   := $(wildcard $(SRC_DIR)/*.s)
-AOBJS      := $(addprefix $(OBJ_DIR)/, $(notdir $(ASOURCES:.s=.o)))
-OBJECTS    := $(AOBJS)
+ASOURCES   := $(sort $(wildcard $(SRC_DIR)/*.s))
+AOBJS      := head.o $(filter-out head.o,$(notdir $(ASOURCES:.s=.o)))
+OBJECTS    := $(addprefix $(OBJ_DIR)/, $(AOBJS))
 VPATH      := $(SRC_DIR)
 
 QUIET      := @

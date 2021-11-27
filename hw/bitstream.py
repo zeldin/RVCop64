@@ -12,6 +12,9 @@ from litex.soc.cores.cpu import CPUNone
 from litex.soc.integration.soc_core import SoCCore, SoCRegion
 from litex.soc.integration.builder import Builder
 from litex.soc.interconnect import wishbone
+from migen import Memory
+
+from rtl.c64bus import BusManager
 
 import argparse
 import os
@@ -67,6 +70,25 @@ class BaseSoC(SoCCore):
         self.submodules.rom = wishbone.SRAM(bios_size, read_only=True, init=[])
         self.register_rom(self.rom.bus, bios_size)
 
+        self.submodules.bus_manager = BusManager(
+            platform.request("c64expansionport"),
+            platform.request("clockport", loose=True))
+        self.exrom = Memory(8, 8192)
+        self.specials += self.exrom
+        rdport = self.exrom.get_port()
+        self.specials += rdport
+        self.comb += [
+            self.bus_manager.exrom.eq(1),
+            self.bus_manager.romdata.eq(rdport.dat_r),
+            rdport.adr.eq(self.bus_manager.a[:13])
+        ]
+
+    def build(self, *args, **kwargs):
+        with open(os.path.join(self.output_dir,
+                               "software/exrom/rom.bin"), "rb") as f:
+            self.exrom.init = f.read()
+        SoCCore.build(self, *args, **kwargs)
+
 def main():
     parser = argparse.ArgumentParser(
         description="Build RISC-V coprocessor cartridge")
@@ -95,6 +117,7 @@ def main():
     platform = Platform(**platform_argdict(args))
 
     output_dir = 'build'
+    sw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../sw"))
 
     cpu_type = "vexriscv"
     cpu_variant = "standard"
@@ -106,6 +129,7 @@ def main():
                       csr_csv=os.path.join(output_dir, "csr.csv"),
                       csr_svd=os.path.join(output_dir, "soc.svd"),
                       compile_software=True, compile_gateware=True)
+    builder.add_software_package("exrom", os.path.join(sw_dir, "exrom"))
     builder_kargs = { "abc9": True,
                       "seed": args.seed
                     } if args.toolchain == "trellis" else {}
