@@ -20,6 +20,8 @@ ansi_keypos:	.res 1
 	;; Reset ANSI terminal emulation
 ansi_reset:
 	lda #0
+	sta $d020
+	sta $d021
 	sta ansi_esc
 	sta ansi_keypos
 	lda #$0e	; text mode
@@ -55,7 +57,7 @@ ansi_print:
 	rts
 	
 @check_csi:
-	cmp #$1b
+	cmp #$5b
 	bne @esc_done
 	ldx #0
 	stx csi_params
@@ -307,7 +309,26 @@ ansi_getc:
 	cmp #$94
 	beq @insert
 	cmp #$14
+	beq @delete
+	cmp #$41
+	bcc @doneok
+	cmp #$5b
+	bcs @notlcase
+	adc #$20
 	bne @doneok
+@notlcase:
+	cmp #$61
+	bcc @doneok
+	cmp #$7b
+	bcc @ucase
+	cmp #$c1
+	bcc @doneok
+	cmp #$db
+	bcs @doneok
+@ucase:
+	and #$5f
+	bne @doneok
+@delete:
 	ldx #esc_seq_del-esc_seq_base+1
 	bne @start_esc_seq
 @cursor_up:

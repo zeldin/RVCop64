@@ -1,4 +1,6 @@
 
+	.import ansi_reset, ansi_print, ansi_getc
+	
 	.code
 	
 	.word start
@@ -21,6 +23,7 @@ start:
 	jsr $ff87
 	jsr $ff8a
 	jsr $ff81
+	jsr ansi_reset
 
 	ldx #0
 @more_message:	
@@ -35,15 +38,14 @@ vuart_loop:
 	bit $de11
 	bmi @nooutp
 	lda $de10
-	jsr $ffd2
+	jsr ansi_print
 	bit $de11
 @nooutp:
 	bvs vuart_loop
-	jsr $ffe4
-	cmp #0
-	beq vuart_loop
+	jsr ansi_getc
+	bcs vuart_loop
 	sta $de10
-	bne vuart_loop
+	bcc vuart_loop
 
 
 message:		
