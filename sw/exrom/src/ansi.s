@@ -1,6 +1,6 @@
 
 	.global ansi_reset, ansi_print, ascii_print
-	.global ansi_getc
+	.global ansi_getc, ansi_cursor_on, ansi_cursor_off
 
 
 chrout = $ffd2
@@ -398,3 +398,29 @@ esc_seq_left:
 esc_seq_home:
 	.byte "[h"
 
+
+
+ansi_cursor_on:
+	lda #0
+	sta $cc
+	rts
+	
+ansi_cursor_off:
+	lda $cc
+	bne @done
+@wcursor:
+	sei
+	lda $cc
+	bne @done2
+	lda $cf
+	beq @done3
+	lda #1
+	sta $cd
+	cli
+	jmp @wcursor
+@done3:
+	inc $cc
+@done2:	
+	cli
+@done:
+	rts
