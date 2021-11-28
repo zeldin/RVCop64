@@ -5,7 +5,8 @@
 
 chrout = $ffd2
 getin = $ffe4
-
+plot = $fff0
+	
 
 	.zeropage
 
@@ -252,23 +253,37 @@ ascii_print:
 	bne @done
 
 @ctrl:
+	cmp #$0a
+	beq @lf
 	cmp #$0c
 	beq @clear
 	cmp #$0d
-	beq @done
+	beq @cr
 	cmp #$7f
 	beq @del
 	cmp #$08
 	bne @unknown_ctrl
+	lda #$9d
+	bne @done
 @del:	
 	lda #$14
 	bne @done
 @clear:	
 	lda #$93
 	bne @done
+@lf:
+	lda #$0d
+	bne @done
 @unknown_ctrl:	
 	rts
 
+@cr:
+	sec
+	jsr plot
+	ldy #0
+	clc
+	jmp plot
+		
 
 ansi_color_table:	
 	.byte	$90		; black
@@ -329,8 +344,8 @@ ansi_getc:
 	and #$5f
 	bne @doneok
 @delete:
-	ldx #esc_seq_del-esc_seq_base+1
-	bne @start_esc_seq
+	lda #$7f
+	bne @doneok
 @cursor_up:
 	ldx #esc_seq_up-esc_seq_base+1
 	bne @start_esc_seq
@@ -371,17 +386,15 @@ ansi_getc:
 
 esc_seq_base:	
 esc_seq_ins:
-	.byte "[2~"
-esc_seq_del:
-	.byte "[3~"
+	.byte "[2",$7e
 esc_seq_up:
-	.byte "[A"
+	.byte "[a"
 esc_seq_down:
-	.byte "[B"
+	.byte "[b"
 esc_seq_right:
-	.byte "[C"
+	.byte "[c"
 esc_seq_left:
-	.byte "[D"
+	.byte "[d"
 esc_seq_home:
-	.byte "[H"
+	.byte "[h"
 
