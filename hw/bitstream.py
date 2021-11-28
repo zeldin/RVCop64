@@ -15,19 +15,31 @@ from litex.soc.interconnect import wishbone
 from migen import Memory
 
 from rtl.c64bus import BusManager
+from rtl.ioregisters import IORegisters
+from rtl.vuart import VUART
 
 import argparse
 import os
+
+
+class SoCIORegisters(IORegisters):
+
+    csr_map = {
+        "vuart0" : 0xde10,
+    }
+
+    def __init__(self):
+        self.submodules.vuart0 = VUART(rx_fifo_depth = 1024)
+        IORegisters.__init__(self)
+
 
 class BaseSoC(SoCCore):
 
     csr_map = {
         "ctrl":           0,
         "crg":            1,
-        "uart_phy":       2,
-        "uart":           3,
-        "identifier_mem": 4,
-        "timer0":         5,
+        "uart":           2,
+        "timer0":         3,
     }
 
     SoCCore.mem_map = {
@@ -49,7 +61,7 @@ class BaseSoC(SoCCore):
 
         get_integrated_sram_size=getattr(platform, "get_integrated_sram_size",
                                          lambda: 0)
-        SoCCore.__init__(self, platform, clk_freq,
+        SoCCore.__init__(self, platform, clk_freq, uart_name="stream",
                          cpu_reset_address=self.mem_map["bios_rom"],
                          integrated_sram_size=get_integrated_sram_size(),
                          csr_data_width=32, **kwargs)
@@ -73,6 +85,7 @@ class BaseSoC(SoCCore):
         self.submodules.bus_manager = BusManager(
             platform.request("c64expansionport"),
             platform.request("clockport", loose=True))
+        # ROML
         self.exrom = Memory(8, 8192)
         self.specials += self.exrom
         rdport = self.exrom.get_port()
@@ -82,6 +95,18 @@ class BaseSoC(SoCCore):
             self.bus_manager.romdata.eq(rdport.dat_r),
             rdport.adr.eq(self.bus_manager.a[:13])
         ]
+        # IO1/2
+        self.submodules.ioregs = SoCIORegisters()
+        self.comb += [
+            self.bus_manager.iodata.eq(self.ioregs.bus.dat_r),
+            self.ioregs.bus.dat_w.eq(self.bus_manager.d),
+            self.ioregs.bus.adr.eq(self.bus_manager.a[:9]),
+            self.ioregs.bus.r_strobe.eq(self.bus_manager.io_r_strobe),
+            self.ioregs.bus.w_strobe.eq(self.bus_manager.io_w_strobe)
+        ]
+        # Connect VUART
+        self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
+        self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,

@@ -30,7 +30,21 @@ start:
 	inx
 	bne @more_message
 @end_message:
-	jmp @end_message
+
+vuart_loop:
+	bit $de11
+	bmi @nooutp
+	lda $de10
+	jsr $ffd2
+	bit $de11
+@nooutp:
+	bvs vuart_loop
+	jsr $ffe4
+	cmp #0
+	beq vuart_loop
+	sta $de10
+	bne vuart_loop
+
 
 message:		
-	.byte $0e, "Hello, world!", 0
+	.byte $0e, "Hello, world!", $0d, $0d, 0
