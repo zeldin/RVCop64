@@ -29,7 +29,7 @@ ansi_reset:
 	jsr chrout
 	lda #$92	; rvsoff
 	jsr chrout
-	lda #$0f
+	lda #$07
 
 	;; Set ANSI foreground color
 ansi_set_fg_color:
@@ -106,19 +106,19 @@ ansi_print:
 @csi_end:
 	ldy #0
 	sty ansi_esc
-	cmp #'A'
+	cmp #'a'
 	beq @cursor_up
-	cmp #'B'
+	cmp #'b'
 	beq @cursor_down
-	cmp #'C'
+	cmp #'c'
 	beq @cursor_right
-	cmp #'D'
+	cmp #'d'
 	beq @cursor_left
-	cmp #'H'
+	cmp #'h'
 	beq @curspos
-	cmp #'J'
+	cmp #'j'
 	beq @clrscr
-	cmp #'m'
+	cmp #$6d
 	beq @sgr
 	rts
 
@@ -194,7 +194,7 @@ ansi_print:
 	bne @not0
 	lda #$92	; rvsoff
 	jsr chrout
-	lda #$0f
+	lda #$07
 	bne @fg_color
 	
 @not0:	
