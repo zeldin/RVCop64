@@ -1,16 +1,22 @@
 from migen import C, Cat, If, Module, Signal, TSTriple, Replicate
 
+from .clockrecovery import ClockRecovery
+
 class BusManager(Module):
     def _export_signal(self, pads, value, *names):
+        r = False
         for name in names:
             p = getattr(pads, name, None)
             if p is not None:
                 self.comb += p.eq(value if len(value) != 1 or len(p) == 1
                                   else Replicate(value, len(p)))
+                r = True
             p = getattr(pads, name+"_n", None)
             if p is not None:
                 self.comb += p.eq(~value if len(value) != 1 or len(p) == 1
                                   else Replicate(~value, len(p)))
+                r = True
+        return r
 
     def _import_signal(self, pads, value, *names):
         signals = []
@@ -27,6 +33,8 @@ class BusManager(Module):
             for i in range(1,len(signals)):
                 signal |= signals[i]
             self.comb += value.eq(signal)
+            return True
+        return False
 
     def __init__(self, expport, clockport=None):
 
@@ -162,3 +170,17 @@ class BusManager(Module):
             self.io_w_strobe.eq((rw_in == 0) & (io12_filter == 0b01111111) &
                                 ~self.clockport_active)
         ]
+
+        # Clock
+
+        self.phi2_in = Signal()
+        if not self._import_signal(expport, self.phi2_in, "phi2"):
+            return
+        self.submodules.clock_recovery = ClockRecovery(self.phi2_in)
+
+        # DMA
+
+        ba = Signal()
+        if (not self._import_signal(expport, ba, "ba") or
+            not self._export_signal(expport, dma, "dma_out")):
+            return
