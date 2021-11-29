@@ -14,6 +14,7 @@ class Phi2In(Module):
         deglitched = Signal(1)
         self.edge = Signal()
         self.cnt = Signal(cntbits)
+        self.lost = Signal()
         self.sync += [
             shiftreg.eq(Cat(phi2_in, shiftreg[:-1])),
             If(shiftreg[0] & ~shiftreg[-1],
@@ -30,8 +31,11 @@ class Phi2In(Module):
                self.edge.eq(0)
             ),
             If(self.edge,
-               self.cnt.eq(0)
-            ).Elif(self.cnt != 0xff,
+               self.cnt.eq(0),
+               self.lost.eq(0),
+            ).Elif(self.cnt == 0xff,
+               self.lost.eq(1)
+            ).Else(
                self.cnt.eq(self.cnt+1)
             )
         ]
@@ -101,7 +105,9 @@ class ClockRecovery(Module):
         ]
 
         lock_cnt = Signal(4)
-        self.sync += If((self.nco.div_adjust[2:] != 0) &
+        self.sync += If(self.phi2in.lost,
+                        lock_cnt.eq(0)
+                     ).Elif((self.nco.div_adjust[2:] != 0) &
                         ((~self.nco.div_adjust[2:]) != 0),
                         If(lock_cnt != 0, lock_cnt.eq(lock_cnt-1))
                      ).Elif(self.phi2in.edge,
