@@ -1,6 +1,18 @@
-from migen import C, Cat, If, Module, Signal, TSTriple, Replicate
+from migen import C, Cat, DIR_M_TO_S, DIR_S_TO_M, FSM, If, Module
+from migen import NextValue, NextState, Signal, TSTriple, Replicate
+
+from litex.soc.interconnect.stream import Endpoint
 
 from .clockrecovery import ClockRecovery
+
+
+dma_description = [
+    ("we",     1, DIR_M_TO_S),
+    ("addr",  16, DIR_M_TO_S),
+    ("wdata",  8, DIR_M_TO_S),
+    ("rdata",  8, DIR_S_TO_M),
+]
+
 
 class BusManager(Module):
     def _export_signal(self, pads, value, *names):
@@ -150,7 +162,7 @@ class BusManager(Module):
                         )
                      ).Else(
                         # Internal address access
-                     	d_dir.eq(d_dir_dma),
+                        d_dir.eq(d_dir_dma),
                         d_en.eq(d_en_dma),
                         d_oe.eq(d_oe_dma),
                         a_dir.eq(a_dir_dma),
@@ -184,3 +196,143 @@ class BusManager(Module):
         if (not self._import_signal(expport, ba, "ba") or
             not self._export_signal(expport, dma, "dma_out")):
             return
+
+        ba_filter = Signal(2)
+        ba_counter = Signal(2)
+        rw_in_log = Signal(2)
+        self.sync += ba_filter.eq(Cat(ba, ba_filter[:-1]))
+        ba_asserted = (ba_filter == 0b00)
+        cpu_stopped_by_ba = (ba_counter == 0b11)
+        read_follows_write = (rw_in_log == 0b01)
+        can_request_dma = cpu_stopped_by_ba | read_follows_write
+
+        self.ff00_w_strobe = Signal()
+
+        self.dma_endpoint = Endpoint(dma_description)
+        self.dma_alloc = Signal()
+
+        dma_dummy_cycle = Signal()
+        dma_delay = Signal(4)
+        self.submodules.fsm = fsm = FSM(reset_state="RESET")
+        fsm.act("RESET",
+                NextValue(d_dir_dma, 0),
+                NextValue(d_en_dma, 0),
+                NextValue(d_oe_dma, 0),
+                NextValue(a_dir_dma, 0),
+                NextValue(a_en_dma, 1),
+                NextValue(a_oe_dma, 0),
+                NextValue(rw_out_dma, 1),
+                NextValue(dma, 0),
+                NextValue(dma_dummy_cycle, 0),
+                If(self.clock_recovery.phi2_out,
+                   NextState("WAIT_PHASE0")))
+
+        fsm.act("WAIT_PHASE0",
+                If(~self.clock_recovery.phi2_out,
+                   NextState("PHASE0_00")))
+
+        fsm.act("PHASE0_00",
+                If((rw_in == 0b0) & (a_d == 0xff00),
+                   NextValue(self.ff00_w_strobe, 1)),
+                NextValue(rw_in_log, Cat(rw_in | dma, rw_in_log[:-1])),
+                NextState("PHASE0_01"))
+
+        fsm.act("PHASE0_01",
+                NextValue(self.ff00_w_strobe, 0),
+                NextState("PHASE0_02"))
+
+        fsm.act("PHASE0_02",
+                NextValue(d_en_dma, 0),
+                NextValue(d_oe_dma, 0),
+                NextValue(a_en_dma, 0),
+                NextValue(a_oe_dma, 0),
+                NextState("PHASE0_03")),
+
+        fsm.act("PHASE0_03",
+                NextValue(d_dir_dma, 0),
+                NextValue(a_dir_dma, 0),
+                NextValue(rw_out_dma, 1),
+                NextValue(dma_delay, 15),
+                NextState("DMA_SELECT")),
+
+        fsm.act("DMA_SELECT",
+                If(dma_delay != 0,
+                   NextValue(dma_delay, dma_delay-1)
+                ).Else(
+                   If(~self.dma_endpoint.valid & ~self.dma_alloc,
+                      NextValue(dma, 0)
+                   ).Elif(can_request_dma,
+                      NextValue(dma, 1)
+                   ),
+                   NextState("WAIT_PHASE1")
+                ))
+
+        fsm.act("WAIT_PHASE1",
+                NextValue(a_en_dma, 1),
+                If(self.clock_recovery.phi2_out,
+                   NextState("PHASE1_00")))
+
+        fsm.act("PHASE1_00",
+                If(~ba_asserted,
+                   NextValue(ba_counter, 0)
+                ).Elif(~cpu_stopped_by_ba,
+                   NextValue(ba_counter, ba_counter+1)
+                ),
+                If(dma & ~ba_asserted,
+                   NextValue(a_en_dma, 0),
+                   NextState("PHASE1_01")
+                ).Else(
+                   NextState("WAIT_PHASE0")
+                ))
+
+        fsm.act("PHASE1_01",
+                If(self.dma_endpoint.valid,
+                   NextValue(dma_dummy_cycle, 0),
+                   NextValue(a_q, self.dma_endpoint.addr),
+                   NextValue(d_q, self.dma_endpoint.wdata),
+                   NextValue(d_dir_dma, self.dma_endpoint.we)
+                ).Else(
+                   NextValue(dma_dummy_cycle, 1),
+                   # Read address 0
+                   NextValue(a_q, 0)
+                ),
+                NextValue(a_dir_dma, 1),
+                NextState("PHASE1_02"))
+
+        fsm.act("PHASE1_02",
+                NextValue(a_en_dma, 1),
+                NextValue(a_oe_dma, 1),
+                If(~dma_dummy_cycle,
+                   NextValue(rw_out_dma, ~d_dir_dma)),
+                NextState("PHASE1_03"))
+
+        fsm.act("PHASE1_03",
+                If(~rw_out_dma,
+                   NextValue(d_oe_dma, 1)),
+                NextState("PHASE1_04"))
+
+        fsm.act("PHASE1_04",
+                NextValue(d_en_dma, 1),
+                NextState("WAIT_PHASE0_DMA"))
+
+        fsm.act("WAIT_PHASE0_DMA",
+                If(self.clock_recovery.phi2_out,
+                   NextValue(self.dma_endpoint.rdata, d_d)
+                ).Else(
+                   If(~dma_dummy_cycle,
+                      self.dma_endpoint.ready.eq(1)),
+                   NextState("PHASE0_00")
+                ))
+
+class Wishbone2BusDMA(Module):
+    def __init__(self, wishbone, ep, base_address=0x00000000):
+        assert len(wishbone.dat_w) == len(ep.wdata)
+        self.comb += [
+            ep.we.eq(wishbone.we),
+            ep.addr.eq((wishbone.adr - base_address)[:len(ep.addr)]),
+            ep.wdata.eq(wishbone.dat_w),
+            ep.valid.eq(wishbone.cyc & wishbone.stb),
+
+            wishbone.dat_r.eq(ep.rdata),
+            wishbone.ack.eq(ep.ready)
+        ]

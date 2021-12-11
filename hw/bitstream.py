@@ -14,7 +14,7 @@ from litex.soc.integration.builder import Builder
 from litex.soc.interconnect import wishbone
 from migen import Memory
 
-from rtl.c64bus import BusManager
+from rtl.c64bus import BusManager, Wishbone2BusDMA
 from rtl.ioregisters import IORegisters
 from rtl.vuart import VUART
 
@@ -43,6 +43,7 @@ class BaseSoC(SoCCore):
     }
 
     SoCCore.mem_map = {
+        "c64":              0x00000000,
         "sram":             0x10000000,
         "main_ram":         0x40000000,
         "bios_rom":         0x70000000,
@@ -104,6 +105,12 @@ class BaseSoC(SoCCore):
             self.ioregs.bus.r_strobe.eq(self.bus_manager.io_r_strobe),
             self.ioregs.bus.w_strobe.eq(self.bus_manager.io_w_strobe)
         ]
+        # DMA
+        c64dma_wb = wishbone.Interface(data_width=8)
+        dma_region = SoCRegion(origin=self.mem_map.get("c64"), size=0x10000)
+        self.submodules.c64dma_wb = Wishbone2BusDMA(c64dma_wb, self.bus_manager.dma_endpoint, base_address=dma_region.origin)
+        self.bus.add_region("c64", dma_region)
+        self.bus.add_slave("c64", c64dma_wb)
         # Connect VUART
         self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
         self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
@@ -122,8 +129,8 @@ def main():
         help="build for a particular hardware"
     )
     parser.add_argument(
-	"--sys-clk-freq", default=64e6,
-	help="System clock frequency (default=64MHz)"
+        "--sys-clk-freq", default=64e6,
+        help="System clock frequency (default=64MHz)"
     )
     parser.add_argument(
         "--seed", type=int, default=1, help="seed to use in nextpnr"
