@@ -9,7 +9,8 @@
 	url = https://github.com/enjoy-digital/litedram.git
 [submodule "hw/deps/litex_boards"]
 	path = hw/deps/litex_boards
-	url = https://github.com/litex-hub/litex-boards.git
+	url = https://github.com/zeldin/litex-boards.git
+	branch = orangecart
 [submodule "hw/deps/litehyperram"]
 	path = hw/deps/litehyperram
 	url = https://github.com/zeldin/litehyperram.git
