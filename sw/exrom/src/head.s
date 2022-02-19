@@ -1,15 +1,13 @@
-
-	.import ansi_reset, ansi_print, ansi_getc
-	.import ansi_cursor_on, ansi_cursor_off
+	.import install_basic_wedge
 
 	.code
 	
-	.word start
-	.word start
+	.word coldstart
+	.word warmstart
 
 	.byte "CBM80"
 
-start:
+coldstart:
 	sei
 	ldx #$ff
 	txs
@@ -20,48 +18,31 @@ start:
 	sta $00
 	lda #$0b
 	sta $d011
-	jsr $ff84
-	jsr $ff87
-	jsr $ff8a
-	jsr $ff81
-	jsr ansi_reset
+	jsr $fda3
+	jsr $fd50
+	jsr $fd15
+	jsr $ff5b
+	cli
+	jsr $e453
+	jsr install_basic_wedge
+	jsr $e3bf
+	jsr $e422
+	lda #<welcome_message
+	ldy #>welcome_message
+	jsr $ab1e
+	jmp $e39d
 
-	ldx #0
-@more_message:	
-	lda message,x
-	beq @end_message
-	jsr $ffd2
-	inx
-	bne @more_message
-@end_message:
+nostop:
+	jmp $fe72
+warmstart:
+	jsr $f6bc
+	jsr $ffe1
+	bne nostop
+	jsr $fd15
+	jsr $fda3
+	jsr $e518
+	jmp ($a002)
 
-vuart_loop_busy:
-	jsr ansi_cursor_off
-vuart_loop:
-	bit $de11
-	bmi @nooutp
-	jsr ansi_cursor_off
-	lda $de10
-	jsr ansi_print
-	bit $de11
-	bvs vuart_loop
-@check_input:
-	jsr ansi_getc
-	bcs vuart_loop
-	cmp #0
-	beq vuart_loop
-@gotchar:
-	sta $de10
-	bcc vuart_loop
-@nooutp:
-	bvs vuart_loop_busy
-	jsr ansi_getc
-	bcs vuart_loop_busy
-	cmp #0
-	bne @gotchar
-	jsr ansi_cursor_on
-	jmp vuart_loop
+welcome_message:
+	.byte $9f, "   rvcop64 installed, rvhelp for help", $9a, $0d, 0
 
-
-message:		
-	.byte $0e, "Hello, world!", $0d, $0d, 0
