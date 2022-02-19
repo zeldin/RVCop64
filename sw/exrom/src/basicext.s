@@ -6,8 +6,11 @@
 	
 endchr = $08
 count  = $0b
+valtyp = $0d
 dores  = $0f
 lstpnt = $49
+deccnt = $5d
+facexp = $61
 bufptr = $71
 chrget = $73
 txtptr = $7a
@@ -18,10 +21,18 @@ ploop  = $a6f3
 newstt = $a7ae
 gone   = $a7e4
 outdo  = $ab47
+qdot   = $aead
+snerr  = $af08
+isvar  = $af28
+isletc = $b113
+overr  = $b97e
+fin    = $bcf3
+finlog = $bd7e
 
 datatk = $83
 remtk  = $8f
 printk = $99
+plustk = $aa
 pi     = $ff
 	
 	.code
@@ -39,6 +50,10 @@ install_basic_wedge:
 	ldy #>newgone
 	sta $0308
 	sty $0309
+	lda #<neweval
+	ldy #>neweval
+	sta $030a
+	sty $030b
 	rts
 
 
@@ -263,6 +278,72 @@ newgone:
 	jmp chrget
 
 
+neweval:
+	lda #0		;ASSUME VALUE WILL BE NUMERIC.
+	sta valtyp
+@eval0:
+	jsr chrget	;GET A CHARACTER.
+	bcs @eval2
+	jmp fin         ;IT IS A NUMBER.
+@eval2:
+	jsr isletc	;VARIABLE NAME?
+	bcs @isvar	;YES.
+	cmp #pi
+	bne @notpi
+	jmp $ae9e
+@notpi:
+	cmp #plustk
+	beq @eval0
+	cmp #$cc
+	bcs @myfun
+	cmp #'$'
+	beq @hexnum
+	jmp qdot
+@isvar:
+	jmp isvar
+@myfun:
+@snerr:
+	jmp snerr
+@hexnum:
+	ldy #0		;ZERO FACSGN&SGNFLG.
+	ldx #$0a	;ZERO EXP AND HO (AND MOH).
+@finzlp:
+	sty deccnt,x	;ZERO MO AND LO.
+	dex		;ZERO TENEXP AND EXPSGN
+	bpl @finzlp	;ZERO DECCNT, DPTFLG.
+	jsr chrget
+	bcc @findig
+	sbc #'a'
+	bcc @snerr
+	cmp #6
+	bcs @snerr
+@xdig:
+	adc #10
+@findig:
+	tax
+	lda facexp
+	beq @noexp
+	clc
+	adc #4
+	bcs @overflow
+	sta facexp
+@noexp:	
+	txa
+	and #$0f
+	jsr finlog
+	jsr chrget
+	bcc @findig
+	sbc #'a'
+	bcc @fine
+	cmp #6
+	bcc @xdig
+@fine:
+	rts
+
+@overflow:
+	jmp overr
+
+	
 rv_reslst:
 	.byte "hel",'p'+$80
 	.byte "ter",'m'+$80
