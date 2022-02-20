@@ -8,16 +8,19 @@ from migen import Memory
 from .c64bus import BusManager, Wishbone2BusDMA
 from .ioregisters import IORegisters
 from .vuart import VUART
+from .wbmaster import WBMaster
 
 
 class SoCIORegisters(IORegisters):
 
     csr_map = {
         "vuart0" : 0xde10,
+        "wbmaster" : 0xde20,
     }
 
     def __init__(self):
         self.submodules.vuart0 = VUART(rx_fifo_depth = 1024)
+        self.submodules.wbmaster = WBMaster()
         IORegisters.__init__(self)
 
 
@@ -102,6 +105,8 @@ class BaseSoC(SoCCore):
         # Connect VUART
         self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
         self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
+        # Connect WBMaster
+        self.bus.add_master(name="c64wbmaster", master=self.ioregs.wbmaster.wishbone)
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,
