@@ -2,8 +2,8 @@
 	.global install_basic_wedge
 
 	.import rvterm
+	.import rvmem_addr, rvmem_data, rvmem_cmd
 
-	
 endchr = $08
 count  = $0b
 valtyp = $0d
@@ -11,8 +11,14 @@ dores  = $0f
 lstpnt = $49
 deccnt = $5d
 facexp = $61
+facho  = $62
+facmoh = $63
+facmo  = $64
+faclo  = $65
+facsgn = $66
 bufptr = $71
 chrget = $73
+chrgot = $79
 txtptr = $7a
 buf    = $0200
 reslst = $a09e
@@ -21,11 +27,19 @@ ploop  = $a6f3
 newstt = $a7ae
 gone   = $a7e4
 outdo  = $ab47
+frmnum = $ad8a
 qdot   = $aead
+parchk = $aef1
+chkcom = $aefd
 snerr  = $af08
 isvar  = $af28
 isletc = $b113
+fcerr  = $b248
+sngflt = $b3a2
+getbyt = $b79e
+combyt = $b7f1
 overr  = $b97e
+qint   = $bc9b
 fin    = $bcf3
 finlog = $bd7e
 
@@ -261,16 +275,16 @@ newgone:
 @gone3:
 	jmp gone+3
 @mytoken:
-	cmp #$cc+num_rv_tokens
+	cmp #$cc+num_rv_stmt
 	ora #0
 	bcs @gone3
+	jsr jump_mytoken
+	jmp newstt
+
+jump_mytoken:	
 	sbc #$cc-1
 	asl
 	tax
-	lda #>(newstt-1)
-	pha
-	lda #<(newstt-1)
-	pha
 	lda rv_jumptable+1,x
 	pha
 	lda rv_jumptable,x
@@ -302,6 +316,10 @@ neweval:
 @isvar:
 	jmp isvar
 @myfun:
+	cmp #$cc+num_rv_stmt
+	bcc @snerr
+	cmp #$cc+num_rv_tokens
+	bcc jump_mytoken
 @snerr:
 	jmp snerr
 @hexnum:
@@ -347,13 +365,20 @@ neweval:
 rv_reslst:
 	.byte "hel",'p'+$80
 	.byte "ter",'m'+$80
+	.byte "pok",'e'+$80
+	.byte "pee",'k'+$80
 	.byte 0
 
 rv_jumptable:
 	.word rvhelp-1
 	.word rvterm_stub-1
+	.word rvpoke-1
+num_rv_stmt = (* - rv_jumptable)/2
+rv_jumptable_funcs:
+	.word rvpeek-1
+num_rv_func = (* - rv_jumptable_funcs)/2
 num_rv_tokens = (* - rv_jumptable)/2
-
+		
 
 syntax_error:
 	rts
@@ -372,4 +397,62 @@ help_message:
 	.byte $93,"rvcop64 extended basic commands:", $0d, $0d
 	.byte "rvhelp - display this screen", $0d
 	.byte "rvterm - vuart terminal emulator", $0d
+	.byte "rvpoke addr,byte,... - write rv memory", $0d
+	.byte "rvpeek(addr) - read rv memory", $0d
 	.byte $0d, 0
+
+
+rvpoke:
+	jsr frmnum
+	jsr getrvaddr
+	lda #$03
+	sta rvmem_cmd
+@nextbyt:
+	jsr combyt
+	stx rvmem_data
+@wait:
+	bit rvmem_cmd
+	bmi @wait
+	jsr chrgot
+	bne @nextbyt
+	lda #0
+	sta rvmem_cmd
+	rts
+
+rvpeek:
+	jsr parchk
+	jsr getrvaddr
+	lda #$40
+	sta rvmem_cmd
+@wait:
+	bit rvmem_cmd
+	bmi @wait
+	ldy rvmem_data
+	jmp sngflt
+
+
+getrvaddr:
+	jsr getuint32
+	lda facho
+	sta rvmem_addr+3
+	lda facmoh
+	sta rvmem_addr+2
+	lda facmo
+	sta rvmem_addr+1
+	lda faclo
+	sta rvmem_addr
+done:
+	rts
+
+gofuc:
+	jmp fcerr
+
+getuint32:
+	lda facsgn
+	bmi gofuc
+	lda facexp
+	cmp #32+$80	; 32 bits
+	beq done
+	bcs gofuc
+	jmp qint
+
