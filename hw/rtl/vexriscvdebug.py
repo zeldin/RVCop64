@@ -1,6 +1,6 @@
 from litex.soc.interconnect.csr import AutoCSR, CSRAccess, CSRField
 from litex.soc.interconnect import wishbone
-from migen import If, Module, Mux, Signal
+from migen import Cat, If, Module, Mux, Signal
 from .csrextra import CSRStatusAndControl
 
 class VexRiscvDebug(Module, AutoCSR):
@@ -24,11 +24,12 @@ class VexRiscvDebug(Module, AutoCSR):
 
         cmd = Signal(32)
 
-        self.comb += [
+        self.comb += \
             self.wishbone.dat_w.eq(Mux(self.wishbone.adr[0],
-                                       self._reg_instr.fields.instr, cmd)),
-            cmd[4].eq(self._status_control.fields.step_it)
-        ]
+                                       self._reg_instr.fields.instr,
+                                       Cat(cmd[:4],
+                                           self._status_control.fields.step_it,
+                                           cmd[5:])))
 
         self.sync += \
             If(self.wishbone.cyc,
