@@ -9,6 +9,7 @@ from .c64bus import BusManager, Wishbone2BusDMA
 from .ioregisters import IORegisters
 from .vuart import VUART
 from .wbmaster import WBMaster
+from .vexriscvdebug import VexRiscvDebug
 
 
 class SoCIORegisters(IORegisters):
@@ -16,11 +17,13 @@ class SoCIORegisters(IORegisters):
     csr_map = {
         "vuart0" : 0xde10,
         "wbmaster" : 0xde20,
+        "vexriscv_debug" : 0xde30
     }
 
     def __init__(self):
         self.submodules.vuart0 = VUART(rx_fifo_depth = 1024)
         self.submodules.wbmaster = WBMaster()
+        self.submodules.vexriscv_debug = VexRiscvDebug()
         IORegisters.__init__(self)
 
 
@@ -107,6 +110,11 @@ class BaseSoC(SoCCore):
         self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
         # Connect WBMaster
         self.bus.add_master(name="c64wbmaster", master=self.ioregs.wbmaster.wishbone)
+        # Debug
+        self.bus.regions.pop("vexriscv_debug", None)
+        debug_slave = self.bus.slaves.pop("vexriscv_debug", None)
+        if debug_slave is not None:
+            self.comb += self.ioregs.vexriscv_debug.wishbone.connect(debug_slave)
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,

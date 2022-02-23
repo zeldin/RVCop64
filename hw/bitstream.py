@@ -47,7 +47,7 @@ def main():
     sw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../sw"))
 
     cpu_type = "vexriscv"
-    cpu_variant = "standard"
+    cpu_variant = "standard+debug"
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
                             clk_freq=int(float(args.sys_clk_freq)),

@@ -20,7 +20,7 @@ class Interface(Record):
         self.dat_r.reset_less = True
 
 class CSRBank(GenericBank):
-    def __init__(self, description, address=0, bus=None):
+    def __init__(self, description, address=0, bus=None, live_data=False):
         if bus is None:
             bus = Interface()
         self.bus = bus
@@ -38,7 +38,7 @@ class CSRBank(GenericBank):
                 If(sel & self.bus.w_strobe, c.re.eq(1)),
                 If(sel & self.bus.r_strobe, c.we.eq(1))
             ]
-            self.sync += If(sel & self.bus.r_strobe, self.bus.dat_r.eq(c.w))
+            self.sync += If(sel & (live_data | self.bus.r_strobe), self.bus.dat_r.eq(c.w))
 
 class IORegisters(Module):
 
@@ -64,4 +64,5 @@ class IORegisters(Module):
                 mapaddr = self.address_map(name, None)
                 if mapaddr is None:
                     continue
-                self.submodules += CSRBank(csrs, mapaddr, self.bus)
+                self.submodules += CSRBank(csrs, mapaddr, self.bus,
+					   getattr(obj, "live_csr_data", False))
