@@ -3,6 +3,8 @@
 
 	.import rvterm
 	.import rvmem_addr, rvmem_data, rvmem_cmd
+	.import rvdebug_halt, rvdebug_continue
+	.import rvdebug_setreg, rvdebug_getreg, rvdebug_jump
 
 endchr = $08
 count  = $0b
@@ -366,6 +368,7 @@ rv_reslst:
 	.byte "hel",'p'+$80
 	.byte "ter",'m'+$80
 	.byte "pok",'e'+$80
+	.byte "sy",'s'+$80
 	.byte "pee",'k'+$80
 	.byte 0
 
@@ -373,6 +376,7 @@ rv_jumptable:
 	.word rvhelp-1
 	.word rvterm_stub-1
 	.word rvpoke-1
+	.word rvsys-1
 num_rv_stmt = (* - rv_jumptable)/2
 rv_jumptable_funcs:
 	.word rvpeek-1
@@ -399,7 +403,18 @@ help_message:
 	.byte "rvterm - vuart terminal emulator", $0d
 	.byte "rvpoke addr,byte,... - write rv memory", $0d
 	.byte "rvpeek(addr) - read rv memory", $0d
+	.byte "rvsys addr - set rv pc", $0d
 	.byte $0d, 0
+
+
+rvsys:
+	jsr frmnum
+	jsr getuint32
+	jsr rvdebug_halt
+	ldx #1
+	jsr rvdebug_setreg
+	jsr rvdebug_jump
+	jmp rvdebug_continue
 
 
 rvpoke:
