@@ -10,6 +10,7 @@ endchr = $08
 count  = $0b
 valtyp = $0d
 dores  = $0f
+poker  = $14
 lstpnt = $49
 deccnt = $5d
 facexp = $61
@@ -40,6 +41,7 @@ fcerr  = $b248
 sngflt = $b3a2
 getbyt = $b79e
 combyt = $b7f1
+getadr = $b7f7
 overr  = $b97e
 qint   = $bc9b
 fin    = $bcf3
@@ -368,6 +370,9 @@ rv_reslst:
 	.byte "hel",'p'+$80
 	.byte "ter",'m'+$80
 	.byte "pok",'e'+$80
+	.byte "stas",'h'+$80
+	.byte "fetc",'h'+$80
+	.byte "swa",'p'+$80
 	.byte "sy",'s'+$80
 	.byte "pee",'k'+$80
 	.byte 0
@@ -376,6 +381,9 @@ rv_jumptable:
 	.word rvhelp-1
 	.word rvterm_stub-1
 	.word rvpoke-1
+	.word rvstash-1
+	.word rvfetch-1
+	.word rvswap-1
 	.word rvsys-1
 num_rv_stmt = (* - rv_jumptable)/2
 rv_jumptable_funcs:
@@ -395,6 +403,9 @@ rvhelp:
 	bne syntax_error
 	lda #<help_message
 	ldy #>help_message
+	jsr $ab1e
+	lda #<help_message_part_2
+	ldy #>help_message_part_2
 	jmp $ab1e
 
 help_message:
@@ -402,9 +413,106 @@ help_message:
 	.byte "rvhelp - display this screen", $0d
 	.byte "rvterm - vuart terminal emulator", $0d
 	.byte "rvpoke addr,byte,... - write rv memory", $0d
-	.byte "rvpeek(addr) - read rv memory", $0d
+	.byte "?rvpeek(addr) - read rv memory", $0d
+	.byte "rvstash cnt,intsa,extsa - copy to rvm", $0d
+	.byte "rvfetch cnt,intsa,extsa - copy from rvm", $0d, 0
+help_message_part_2:
+	.byte "rvswap cnt,intsa,extsa - exchange rvm", $0d
 	.byte "rvsys addr - set rv pc", $0d
 	.byte $0d, 0
+	
+
+rvfetch:
+	jsr getstashparm
+	lda #$cc
+	sta rvmem_cmd
+	ldy #0
+	ldx lstpnt
+	beq @just_dex
+	dex
+	bne @just_inc
+	lda lstpnt+1
+	bne @next
+	beq @fetchlast
+@just_inc:
+	inc lstpnt+1
+	.byte $24 ; bit zp
+@just_dex:
+	dex
+@next:	
+	bit rvmem_cmd
+	bmi @next
+	lda rvmem_data
+	sta (poker),y
+	iny
+	bne @skip1
+	inc poker+1
+@skip1:	
+	dex
+	bne @next
+	dec lstpnt+1
+	bne @next
+@fetchlast:
+	bit rvmem_cmd
+	bmi @fetchlast
+	stx rvmem_cmd
+	lda rvmem_data
+	sta (poker),y
+	rts	
+
+rvswap:
+	jsr getstashparm
+	ldy #0
+	ldx lstpnt
+	beq @next
+	inc lstpnt+1
+@next:
+	lda #$43
+	sta rvmem_cmd
+@wait1:
+	bit rvmem_cmd
+	bmi @wait1
+	lda rvmem_data
+	pha
+	lda (poker),y
+	sta rvmem_data
+	pla
+	sta (poker),y
+	iny
+	bne @wait2
+	inc poker+1
+@wait2:
+	bit rvmem_cmd
+	bmi @wait2
+	dex
+	bne @next
+	dec lstpnt+1
+	bne @next
+	beq rvmem_cmd_end	
+	
+rvstash:
+	jsr getstashparm
+	lda #$03
+	sta rvmem_cmd
+	ldy #0
+	ldx lstpnt
+	beq @next
+	inc lstpnt+1
+@next:
+	lda (poker),y
+	sta rvmem_data
+@wait:
+	bit rvmem_cmd
+	bmi @wait
+	iny
+	bne @skip1
+	inc poker+1
+@skip1:	
+	dex
+	bne @next
+	dec lstpnt+1
+	bne @next
+	beq rvmem_cmd_end	
 
 
 rvsys:
@@ -430,6 +538,7 @@ rvpoke:
 	bmi @wait
 	jsr chrgot
 	bne @nextbyt
+rvmem_cmd_end:
 	lda #0
 	sta rvmem_cmd
 	rts
@@ -445,7 +554,19 @@ rvpeek:
 	ldy rvmem_data
 	jmp sngflt
 
-
+getstashparm:
+	jsr frmnum
+	jsr getadr
+	sty lstpnt
+	sta lstpnt+1
+	ora lstpnt
+	beq gofuc
+	jsr chkcom
+	jsr frmnum
+	jsr getadr
+	jsr chkcom
+	jsr frmnum
+	
 getrvaddr:
 	jsr getuint32
 	lda facho
