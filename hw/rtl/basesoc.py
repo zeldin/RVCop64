@@ -73,7 +73,7 @@ class BaseSoC(SoCCore):
             self.bus.add_region("main_ram", SoCRegion(origin=self.mem_map["main_ram"], size=mram_size))
             self.bus.add_slave("main_ram", mram_slave)
 
-        self.integrated_rom_size = bios_size = 0x8000
+        self.integrated_rom_size = bios_size = 0xc000
         self.submodules.rom = wishbone.SRAM(bios_size, read_only=True, init=[])
         self.register_rom(self.rom.bus, bios_size)
 
@@ -115,6 +115,10 @@ class BaseSoC(SoCCore):
         debug_slave = self.bus.slaves.pop("vexriscv_debug", None)
         if debug_slave is not None:
             self.comb += self.ioregs.vexriscv_debug.wishbone.connect(debug_slave)
+
+        # SDCard
+        self.add_spi_sdcard()
+
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,
