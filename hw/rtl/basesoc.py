@@ -115,6 +115,10 @@ class BaseSoC(SoCCore):
         debug_slave = self.bus.slaves.pop("vexriscv_debug", None)
         if debug_slave is not None:
             self.comb += self.ioregs.vexriscv_debug.wishbone.connect(debug_slave)
+        # Reset button
+        usr_btn = platform.request("usr_btn", loose=True)
+        if usr_btn is not None:
+            self.comb += self.bus_manager.reset_control.ext_reset.eq(~usr_btn)
 
         # SDCard
         self.add_spi_sdcard()

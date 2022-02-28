@@ -4,6 +4,7 @@ from migen import NextValue, NextState, Signal, TSTriple, Replicate
 from litex.soc.interconnect.stream import Endpoint
 
 from .clockrecovery import ClockRecovery
+from .resetcontrol import ResetControl
 
 
 dma_description = [
@@ -77,6 +78,14 @@ class BusManager(Module):
         self._export_signal(expport, d_en, "d_en")
         d_dir = Signal()
         self._export_signal(expport, d_dir, "d_dir")
+
+        # Reset
+
+        reset_in = Signal()
+        reset_out = Signal()
+        self._import_signal(expport, reset_in, "reset_in")
+        self._export_signal(expport, reset_out, "reset_out")
+        self.submodules.reset_control = ResetControl(reset_in, reset_out)
 
         # Clockport
 
