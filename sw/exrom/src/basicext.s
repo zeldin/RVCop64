@@ -5,6 +5,7 @@
 	.import rvmem_addr, rvmem_data, rvmem_cmd
 	.import rvdebug_halt, rvdebug_continue
 	.import rvdebug_setreg, rvdebug_getreg, rvdebug_jump
+	.import rvdebug_flush_caches
 
 endchr = $08
 count  = $0b
@@ -521,6 +522,7 @@ rvsys:
 	jsr rvdebug_halt
 	ldx #1
 	jsr rvdebug_setreg
+	jsr rvdebug_flush_caches
 	jsr rvdebug_jump
 	jmp rvdebug_continue
 

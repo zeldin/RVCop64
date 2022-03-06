@@ -1,6 +1,7 @@
 
 	.global rvdebug_halt, rvdebug_continue
 	.global rvdebug_setreg, rvdebug_getreg, rvdebug_jump
+	.global rvdebug_flush_ic, rvdebug_flush_dc, rvdebug_flush_caches
 
 
 rvdebug_status = $de30
@@ -111,5 +112,24 @@ getreg_sub:
 	lda tmp1
 	sta rvdebug_instr+2
 	lda #0
+	sta rvdebug_instr+3
+	rts
+
+	;; Cache flushing - instruction $100f flushes icache and $500f dcache
+rvdebug_flush_caches:	
+	jsr rvdebug_flush_dc
+rvdebug_flush_ic:
+	lda #$0f
+	sta rvdebug_instr
+	lda #$10
+	bne common_flush
+rvdebug_flush_dc:
+	lda #$0f
+	sta rvdebug_instr
+	lda #$50
+common_flush:
+	sta rvdebug_instr+1
+	lda #0
+	sta rvdebug_instr+2
 	sta rvdebug_instr+3
 	rts
