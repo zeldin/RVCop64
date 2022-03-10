@@ -6,7 +6,8 @@
 	.import rvdebug_halt, rvdebug_continue
 	.import rvdebug_setreg, rvdebug_getreg, rvdebug_jump
 	.import rvdebug_flush_caches
-
+	.import rvmon
+	
 endchr = $08
 count  = $0b
 valtyp = $0d
@@ -375,6 +376,7 @@ rv_reslst:
 	.byte "fetc",'h'+$80
 	.byte "swa",'p'+$80
 	.byte "sy",'s'+$80
+	.byte "mo",'n'+$80
 	.byte "pee",'k'+$80
 	.byte 0
 
@@ -386,6 +388,7 @@ rv_jumptable:
 	.word rvfetch-1
 	.word rvswap-1
 	.word rvsys-1
+	.word rvmon-1
 num_rv_stmt = (* - rv_jumptable)/2
 rv_jumptable_funcs:
 	.word rvpeek-1
@@ -420,6 +423,7 @@ help_message:
 help_message_part_2:
 	.byte "rvswap cnt,intsa,extsa - exchange rvm", $0d
 	.byte "rvsys addr - set rv pc", $0d
+	.byte "rvmon - enter monitor", $0d
 	.byte $0d, 0
 	
 

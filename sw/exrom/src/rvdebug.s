@@ -1,6 +1,6 @@
 
 	.global rvdebug_halt, rvdebug_continue
-	.global rvdebug_setreg, rvdebug_getreg, rvdebug_jump
+	.global rvdebug_setreg, rvdebug_getreg, rvdebug_getpc, rvdebug_jump
 	.global rvdebug_flush_ic, rvdebug_flush_dc, rvdebug_flush_caches
 
 
@@ -87,6 +87,7 @@ rvdebug_setreg:
 rvdebug_getreg:
 	lda #$13     ; addi
 	jsr getreg_sub
+getreg_common:
 	lda rvdebug_regval
 	sta faclo
 	lda rvdebug_regval+1
@@ -97,6 +98,12 @@ rvdebug_getreg:
 	sta facho
 	rts
 
+rvdebug_getpc:	
+	lda #$17     ; auipc
+	sta rvdebug_instr
+	lda #0
+	jsr common_flush
+	beq getreg_common
 
 	;; X = register number
 rvdebug_jump:
