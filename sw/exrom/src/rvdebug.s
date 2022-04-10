@@ -1,5 +1,5 @@
 
-	.global rvdebug_halt, rvdebug_continue
+	.global rvdebug_halt, rvdebug_continue, rvdebug_step
 	.global rvdebug_setreg, rvdebug_getreg, rvdebug_getpc, rvdebug_jump
 	.global rvdebug_flush_ic, rvdebug_flush_dc, rvdebug_flush_caches
 
@@ -28,7 +28,13 @@ rvdebug_halt:
 	rts
 
 
+rvdebug_step:
+	lda #$10
+	.byte $2c ; bit abs
+
 rvdebug_continue:
+	lda #0
+	sta rvdebug_status
 	lda #2
 	sta rvdebug_clear
 	rts

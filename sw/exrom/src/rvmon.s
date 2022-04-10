@@ -1,6 +1,6 @@
 
 	.import rvmem_addr, rvmem_cmd, rvmem_data
-	.import rvdebug_halt, rvdebug_getreg, rvdebug_getpc
+	.import rvdebug_halt, rvdebug_getreg, rvdebug_getpc, rvdebug_step
 
 	.global rvmon
 
@@ -117,12 +117,12 @@ cmd_d:
 	jsr getop
 	bcs @noarg
 	jsr arg_minus_addr
-	bcs @noerr
+	bcs cmd_d_core
 	jmp synerr
 @noarg:	
 	lda #29
 	sta faclo
-@noerr:
+cmd_d_core:
 	inc facmo
 	inc facmoh
 	inc facho
@@ -275,8 +275,32 @@ cmd_r:
 cmd_x:
 	jmp ($a002)
 
+
+cmd_z:
+	bcc @yesarg
+	inc faclo
+@yesarg:
+	inc facmo
+	inc facmoh
+	inc facho
+@z_loop:
+	jsr rvdebug_step
+	dec faclo
+	bne @z_loop
+	dec facmo
+	bne @z_loop
+	dec facmoh
+	bne @z_loop
+	dec facho
+	bne @z_loop
+	jsr rvdebug_getpc
+	jsr addr_from_arg
+	jsr clrarg
+	jmp cmd_d_core
+	
+	
 cmdchars:
-	.byte "dmrx"
+	.byte "dmrxz"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -287,6 +311,7 @@ cmdfuncs:
 	.word cmd_m-1
 	.word cmd_r-1
 	.word cmd_x-1
+	.word cmd_z-1
 
 
 disinst32:
@@ -867,11 +892,7 @@ printinstr:
 	jmp chrout
 
 getval:
-	lda #0
-	sta faclo
-	sta facmo
-	sta facmoh
-	sta facho
+	jsr clrarg
 	sta tmp1
 @nextchr:	
 	jsr get_cmd_char
@@ -987,7 +1008,14 @@ base_shift:
 	.byte 4,0,3,1
 
 
-		
+clrarg:
+	lda #0
+	sta faclo
+	sta facmo
+	sta facmoh
+	sta facho
+	rts
+
 addr_from_arg:	
 	lda faclo
 	sta rvmem_addr
