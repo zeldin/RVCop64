@@ -1,6 +1,7 @@
 
 	.import rvmem_addr, rvmem_cmd, rvmem_data
 	.import rvdebug_halt, rvdebug_getreg, rvdebug_getpc, rvdebug_step
+	.import rvdebug_setreg, rvdebug_jump
 
 	.global rvmon
 
@@ -309,10 +310,83 @@ cmd_z:
 	jsr addr_from_arg
 	jsr clrarg
 	jmp cmd_d_core
-	
-	
+
+
+cmd_semicolon:	
+	bcs @noarg
+	lda facmo
+	ora facmoh
+	ora facho
+	bne @badreg
+	lda faclo
+	and #$0f
+	cmp #$0a
+	bcs @badreg
+	lda faclo
+	cmp #$32
+	bcs @badreg
+	cmp #$20
+	bcc @lower
+	cmp #$30
+	bcs @upper
+	sbc #12-1
+	bne @okdec
+@upper:	
+	sbc #18
+	bne @okdec
+@lower:	
+	cmp #$10
+	bcc @okdec
+	sbc #6
+@okdec:
+	cmp #0
+	beq @setpc
+	sta tempf1+1
+@nextreg:
+	jsr getop
+	bcs @noarg
+	txa
+	pha
+	ldx tempf1+1
+	cpx #32
+	bcs @badreg0
+@setpc_end:
+	jsr rvdebug_setreg
+	pla
+	tax
+	inc tempf1+1
+	bne @nextreg
+@noarg:
+	jmp readline
+@badreg0:
+	pla
+	tax
+@badreg:
+	jmp synerr
+
+@setpc:
+	txa
+	pha
+	ldx #5
+	jsr rvdebug_getreg
+	jsr savefac
+	pla
+	tax
+	jsr getop
+	bcs @noarg
+	txa
+	pha
+	ldx #5
+	jsr rvdebug_setreg
+	jsr rvdebug_jump
+	jsr restorefac
+	lda #0
+	sta tempf1+1
+	beq @setpc_end
+
+
 cmdchars:
-	.byte "dmrxz"
+	.byte "dmrxz;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -324,6 +398,7 @@ cmdfuncs:
 	.word cmd_r-1
 	.word cmd_x-1
 	.word cmd_z-1
+	.word cmd_semicolon-1
 
 
 disinst32:
