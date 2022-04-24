@@ -280,8 +280,20 @@ cmd_z:
 	bcc @yesarg
 	inc faclo
 @yesarg:
+	lda faclo
+	bne @inc1
+	lda facmo
+	bne @inc2
+	lda facmoh
+	bne @inc3
+	lda facho
+	bne @z_loop
+	jmp synerr
+@inc1:
 	inc facmo
+@inc2:
 	inc facmoh
+@inc3:
 	inc facho
 @z_loop:
 	jsr rvdebug_step
