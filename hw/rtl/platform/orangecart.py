@@ -5,7 +5,7 @@ from litex.soc.interconnect.wishbone import SRAM, Interface
 
 from litehyperram.core import LiteHyperRAMCore
 from litehyperram.frontend.wishbone import LiteHyperRAMWishbone2Native
-from litehyperram.modules import S70KS0641, S70KS1281
+from litehyperram.modules import S27KS0641DP, S70KS1281DP
 from litehyperram.phy import ECP5HYPERRAMPHY
 
 from litex.build.generic_platform import *
@@ -15,8 +15,8 @@ import os
 from litex_boards.platforms.orangecart import Platform as PlatformOC
 
 available_hyperram_modules = {
-    "S70KS0641": S70KS0641,
-    "S70KS1281": S70KS1281
+    "S27KS0641DP": S27KS0641DP,
+    "S70KS1281DP": S70KS1281DP
 }
 
 def add_platform_args(parser):
@@ -25,8 +25,8 @@ def add_platform_args(parser):
         help="Select device density"
     )
     parser.add_argument(
-        "--hyperram-device", default="S70KS1281",
-        help="HyperRAM device (default=S70KS1281)"
+        "--hyperram-device", default="S70KS1281DP",
+        help="HyperRAM device (default=S70KS1281DP)"
     )
     parser.add_argument(
 	"--toolchain", default="trellis",
@@ -42,7 +42,7 @@ def platform_argdict(args):
 
 
 class Platform(PlatformOC):
-    def __init__(self, revision=None, device="25F", hyperram_device="S70KS1281", toolchain="trellis"):
+    def __init__(self, revision=None, device="25F", hyperram_device="S70KS1281DP", toolchain="trellis"):
         self.revision = revision
         self.device = device
         self.hw_platform = "orangecart"
