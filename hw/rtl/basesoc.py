@@ -4,6 +4,8 @@ from litex.soc.cores.cpu import CPUNone
 from litex.soc.integration.soc_core import SoCCore, SoCRegion
 from litex.soc.interconnect import wishbone
 from migen import Memory
+from valentyusb.usbcore import io as usbio
+from valentyusb.usbcore.cpu import eptri, simplehostusb
 
 from .c64bus import BusManager, Wishbone2BusDMA
 from .ioregisters import IORegisters
@@ -48,11 +50,12 @@ class BaseSoC(SoCCore):
     def __init__(self, platform,
                  output_dir="build",
                  clk_freq=int(64e6),
+                 usb=None,
                  **kwargs):
 
         self.output_dir = output_dir
 
-        platform.add_crg(self, clk_freq)
+        platform.add_crg(self, clk_freq, usb is not None)
 
         get_integrated_sram_size=getattr(platform, "get_integrated_sram_size",
                                          lambda: 0)
@@ -123,6 +126,18 @@ class BaseSoC(SoCCore):
         # SDCard
         self.add_spi_sdcard()
 
+        # USB
+        if usb is not None:
+            usb_pads = platform.request("usb")
+            usb_iobuf = usbio.IoBuf(usb_pads.d_p, usb_pads.d_n, usb_pads.pullup)
+            if usb == "eptri":
+                self.submodules.usb = eptri.TriEndpointInterface(usb_iobuf, cdc=True)
+            elif usb == "simplehostusb":
+                self.submodules.usb = simplehostusb.SimpleHostUsb(usb_iobuf, cdc=True)
+            else:
+                raise ValueError("Unknown usb implementation " + usb)
+            if self.irq.enabled:
+                self.irq.add('usb')
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,

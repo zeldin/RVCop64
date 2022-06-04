@@ -28,6 +28,10 @@ def main():
         help="System clock frequency (default=64MHz)"
     )
     parser.add_argument(
+        "--usb", default=None, choices=["eptri", "simplehostusb"],
+        help="Include USB functionality"
+    )
+    parser.add_argument(
         "--seed", type=int, default=1, help="seed to use in nextpnr"
     )
     args, _ = parser.parse_known_args()
@@ -50,8 +54,8 @@ def main():
     cpu_variant = "standard+debug"
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
-                            clk_freq=int(float(args.sys_clk_freq)),
-                            output_dir=output_dir)
+		  usb=args.usb, clk_freq=int(float(args.sys_clk_freq)),
+		  output_dir=output_dir)
     builder = Builder(soc, output_dir=output_dir,
                       csr_csv=os.path.join(output_dir, "csr.csv"),
                       csr_svd=os.path.join(output_dir, "soc.svd"),

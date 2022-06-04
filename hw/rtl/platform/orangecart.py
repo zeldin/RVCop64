@@ -51,8 +51,8 @@ class Platform(PlatformOC):
 
         PlatformOC.__init__(self, device=device, revision=revision, toolchain=toolchain)
 
-    def add_crg(self, soc, sys_clk_freq):
-        soc.submodules.crg = _CRG(self, sys_clk_freq)
+    def add_crg(self, soc, sys_clk_freq, with_usb=False):
+        soc.submodules.crg = _CRG(self, sys_clk_freq, with_usb)
 
     def add_cpu_variant(self, soc, debug=False):
         pass
@@ -76,11 +76,16 @@ class Platform(PlatformOC):
 
 
 class _CRG(Module):
-    def __init__(self, platform, sys_clk_freq):
+    def __init__(self, platform, sys_clk_freq, with_usb):
         clk48_raw = platform.request("clk48")
 
         self.clock_domains.cd_por = ClockDomain(reset_less=True)
         self.clock_domains.cd_sys = ClockDomain()
+        if with_usb:
+            self.clock_domains.cd_usb_12 = ClockDomain()
+            self.clock_domains.cd_usb_48 = ClockDomain()
+            platform.add_period_constraint(self.cd_usb_48.clk, 1e9/48e6)
+            platform.add_period_constraint(self.cd_usb_12.clk, 1e9/12e6)
 
         por_count = Signal(16, reset=2**16-1)
         por_done  = Signal()
@@ -92,6 +97,9 @@ class _CRG(Module):
         self.comb += pll.reset.eq(~por_done)
         pll.register_clkin(clk48_raw, 48e6)
         pll.create_clkout(self.cd_sys, sys_clk_freq)
+        if with_usb:
+            pll.create_clkout(self.cd_usb_48, 48e6, 0, with_reset=False)
+            pll.create_clkout(self.cd_usb_12, 12e6, 0, with_reset=False)
 
 class _HyperRAM(Module):
     def __init__(self, platform, pins, clk_freq, hypermodule, base_address):
