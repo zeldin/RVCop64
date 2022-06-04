@@ -3,7 +3,7 @@
 # relies on.  lxbuildenv reads this variable in order to ensure
 # the build will finish without exiting due to missing third-party
 # programs.
-LX_DEPENDENCIES = ["make", "riscv", "yosys", "nextpnr-ecp5"]
+LX_DEPENDENCIES = ["make", "meson", "riscv", "yosys", "nextpnr-ecp5"]
 
 # Import lxbuildenv to integrate the deps/ directory
 import lxbuildenv

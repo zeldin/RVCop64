@@ -83,6 +83,7 @@ def read_configuration(filename, args):
     # Set up sub-dependencies
     if 'riscv' in dependencies:
         dependencies['make'] = 1
+        dependencies['meson'] = 1
     if args.lx_check_git or (not configuration['skip-git'] and not args.lx_ignore_git):
         dependencies['git'] = 1
     configuration['dependencies'] = list(dependencies.keys())
@@ -188,6 +189,9 @@ def check_cmd(args, cmd, name=None, fix=None):
 def check_make(args):
     return check_cmd(args, "make", "GNU Make")
 
+def check_meson(args):
+    return check_cmd(args, "meson", "The Meson Build System")
+
 def check_riscv(args):
     riscv64 = check_cmd(args, "riscv64-unknown-elf-gcc", "riscv toolchain", "download it from https://www.sifive.com/boards/")
     if riscv64[0] == True:
@@ -226,6 +230,7 @@ dependency_checkers = {
     'python': check_python_version,
     'vivado': check_vivado,
     'make': check_make,
+    'meson': check_meson,
     'git': check_git,
     'riscv': check_riscv,
     'yosys': check_yosys,
