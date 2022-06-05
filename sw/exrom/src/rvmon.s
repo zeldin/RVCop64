@@ -1,7 +1,7 @@
 
 	.import rvmem_addr, rvmem_cmd, rvmem_data
 	.import rvdebug_halt, rvdebug_getreg, rvdebug_getpc, rvdebug_step
-	.import rvdebug_setreg, rvdebug_jump
+	.import rvdebug_setreg, rvdebug_jump, rvdebug_continue
 
 	.global rvmon
 
@@ -272,7 +272,30 @@ cmd_r:
 @getpc:
 	jmp rvdebug_getpc
 
-	
+
+cmd_g:
+	bcs @noarg
+	jsr addr_from_arg
+	ldx #5
+	jsr rvdebug_getreg
+	jsr savefac
+	lda rvmem_addr
+	sta faclo
+	lda rvmem_addr+1
+	sta facmo
+	lda rvmem_addr+2
+	sta facmoh
+	lda rvmem_addr+3
+	sta facho
+	ldx #5
+	jsr rvdebug_setreg
+	jsr rvdebug_jump
+	jsr restorefac
+	jsr rvdebug_setreg
+@noarg:
+	jsr rvdebug_continue
+
+
 cmd_x:
 	jmp ($a002)
 
@@ -386,7 +409,7 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "dmrxz;"
+	.byte "dgmrxz;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -394,6 +417,7 @@ nbases = (* - base_sign)
 
 cmdfuncs:
 	.word cmd_d-1
+	.word cmd_g-1
 	.word cmd_m-1
 	.word cmd_r-1
 	.word cmd_x-1
