@@ -188,6 +188,46 @@ cmd_d_core:
 @d_done:
 	jmp readline
 
+
+cmd_f:
+	jsr getrangeand3rd
+	bcc @ok
+	jmp synerr
+@ok:	
+	lda faclo
+@f_loop:
+	jsr putbyte
+	dec tempf1+4
+	bne @f_loop
+	dec tempf1+3
+	bne @f_loop
+	dec tempf1+2
+	bne @f_loop
+	dec tempf1+1
+	bne @f_loop
+	jmp readline
+
+
+cmd_t:
+	jsr getrangeand3rd
+	bcc @t_loop
+	jmp synerr
+@t_loop:
+	jsr getbyte
+	jsr swap_addr_and_arg
+	jsr putbyte
+	jsr swap_addr_and_arg
+	dec tempf1+4
+	bne @t_loop
+	dec tempf1+3
+	bne @t_loop
+	dec tempf1+2
+	bne @t_loop
+	dec tempf1+1
+	bne @t_loop
+	jmp readline
+
+	
 cmd_m:
 	bcs @noarg
 	jsr addr_from_arg
@@ -409,7 +449,7 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "dgmrxz;"
+	.byte "dfgmrtxz;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -417,9 +457,11 @@ nbases = (* - base_sign)
 
 cmdfuncs:
 	.word cmd_d-1
+	.word cmd_f-1
 	.word cmd_g-1
 	.word cmd_m-1
 	.word cmd_r-1
+	.word cmd_t-1
 	.word cmd_x-1
 	.word cmd_z-1
 	.word cmd_semicolon-1
@@ -1138,6 +1180,25 @@ addr_from_arg:
 	sta rvmem_addr+3
 	rts
 
+swap_addr_and_arg:
+	ldy faclo
+	ldx rvmem_addr
+	stx faclo
+	sty rvmem_addr
+	ldy facmo
+	ldx rvmem_addr+1
+	stx facmo
+	sty rvmem_addr+1
+	ldy facmoh
+	ldx rvmem_addr+2
+	stx facmoh
+	sty rvmem_addr+2
+	ldy facho
+	ldx rvmem_addr+3
+	stx facho
+	sty rvmem_addr+3
+	rts
+
 arg_minus_addr:
 	sec
 	lda faclo
@@ -1154,6 +1215,34 @@ arg_minus_addr:
 	sta facho
 	rts
 
+getrangeand3rd:	
+	bcs @fail
+	jsr addr_from_arg
+	jsr getop
+	bcs @fail
+	jsr arg_minus_addr
+	bcc @fail
+	inc faclo
+	bne @inc1
+	inc facmo
+	bne @inc2
+	inc facmoh
+	bne @inc3
+	inc facho
+	beq @fail
+@inc1:
+	inc facmo
+@inc2:
+	inc facmoh
+@inc3:
+	inc facho
+	jsr savefac
+	jmp getop
+@fail:
+	sec
+	rts
+
+	
 printdec5_2dig:
 	cmp #10
 	bcs printdec5
@@ -1355,3 +1444,11 @@ getbyte:
 	lda rvmem_data
 	rts
 
+putbyte:
+	ldx #$03
+	stx rvmem_cmd
+	sta rvmem_data
+@wait:
+	bit rvmem_cmd
+	bmi @wait
+	rts
