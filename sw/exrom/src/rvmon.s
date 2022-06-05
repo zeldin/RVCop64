@@ -2,6 +2,7 @@
 	.import rvmem_addr, rvmem_cmd, rvmem_data
 	.import rvdebug_halt, rvdebug_getreg, rvdebug_getpc, rvdebug_step
 	.import rvdebug_setreg, rvdebug_jump, rvdebug_continue
+	.import rvdebug_flush_caches
 
 	.global rvmon
 
@@ -314,6 +315,7 @@ cmd_r:
 
 
 cmd_g:
+	jsr rvdebug_flush_caches
 	bcs @noarg
 	jsr addr_from_arg
 	ldx #5
