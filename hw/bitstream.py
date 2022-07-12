@@ -64,7 +64,7 @@ def main():
     builder_kargs = { "abc9": True,
                       "seed": args.seed
                     } if args.toolchain == "trellis" else {}
-    soc.do_exit(builder.build(**builder_kargs))
+    builder.build(**builder_kargs)
     platform.finalise(output_dir)
 
 
