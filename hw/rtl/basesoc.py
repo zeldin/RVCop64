@@ -146,5 +146,5 @@ class BaseSoC(SoCCore):
         with open(os.path.join(self.output_dir,
                                "software/exrom/rom.bin"), "rb") as f:
             self.exrom.init = f.read()
-        SoCCore.build(self, *args, **kwargs)
+        return SoCCore.build(self, *args, **kwargs)
 
