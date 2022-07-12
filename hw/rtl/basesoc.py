@@ -5,7 +5,7 @@ from litex.soc.integration.soc_core import SoCCore, SoCRegion
 from litex.soc.interconnect import wishbone
 from migen import Memory
 from valentyusb.usbcore import io as usbio
-from valentyusb.usbcore.cpu import eptri, simplehostusb
+from valentyusb.usbcore.cpu import eptri, simplehostusb, dummyusb
 
 from .c64bus import BusManager, Wishbone2BusDMA
 from .ioregisters import IORegisters
@@ -134,9 +134,12 @@ class BaseSoC(SoCCore):
                 self.submodules.usb = eptri.TriEndpointInterface(usb_iobuf, cdc=True)
             elif usb == "simplehostusb":
                 self.submodules.usb = simplehostusb.SimpleHostUsb(usb_iobuf, cdc=True)
+            elif usb == "debug":
+                self.submodules.usb = dummyusb.DummyUsb(usb_iobuf, cdc=True, debug=True)
+                self.bus.add_master(name="usbwishbonebridge", master=self.usb.debug_bridge.wishbone)
             else:
                 raise ValueError("Unknown usb implementation " + usb)
-            if self.irq.enabled:
+            if self.irq.enabled and usb != "debug":
                 self.irq.add('usb')
 
     def build(self, *args, **kwargs):

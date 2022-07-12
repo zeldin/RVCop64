@@ -28,7 +28,7 @@ def main():
         help="System clock frequency (default=64MHz)"
     )
     parser.add_argument(
-        "--usb", default=None, choices=["eptri", "simplehostusb"],
+        "--usb", default=None, choices=["eptri", "simplehostusb", "debug"],
         help="Include USB functionality"
     )
     parser.add_argument(
