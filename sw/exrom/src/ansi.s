@@ -6,7 +6,10 @@
 chrout = $ffd2
 getin = $ffe4
 plot = $fff0
-	
+
+pnt  = $d1
+pntr = $d3
+
 
 	.zeropage
 
@@ -118,6 +121,8 @@ ansi_print:
 	beq @curspos
 	cmp #'j'
 	beq @clrscr
+	cmp #'k'
+	beq @clrline
 	cmp #$6d
 	beq @sgr
 	rts
@@ -166,7 +171,27 @@ ansi_print:
 @clrscr:
 	lda #$93
 	jmp chrout
-	
+
+@clrline:
+	lda #' '
+	ldy pntr
+	ldx csi_params
+	beq @clrtoeol
+	dex
+	beq @clrtobol
+	ldy #0
+@clrtoeol:
+	sta (pnt),y
+	iny
+	cpy #40
+	bcc @clrtoeol
+	rts
+@clrtobol:
+	sta (pnt),y
+	dey
+	bpl @clrtobol
+	rts
+		
 @sgr:
 	dex
 @next_sgr:	
