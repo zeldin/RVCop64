@@ -6,7 +6,7 @@ from litex.soc.interconnect.wishbone import SRAM, Interface
 from litehyperram.core import LiteHyperRAMCore
 from litehyperram.frontend.wishbone import LiteHyperRAMWishbone2Native
 from litehyperram.modules import S27KS0641DP, S70KS1281DP
-from litehyperram.phy import ECP5HYPERRAMPHY
+from litehyperram.phy import ECP5HYPERRAMPHY2x
 
 from litex.build.generic_platform import *
 
@@ -81,6 +81,11 @@ class _CRG(Module):
 
         self.clock_domains.cd_por = ClockDomain(reset_less=True)
         self.clock_domains.cd_sys = ClockDomain()
+        self.clock_domains.cd_sys2x = ClockDomain()
+        self.clock_domains.cd_sys2x_90 = ClockDomain()
+        platform.add_period_constraint(self.cd_sys.clk, 1e9/sys_clk_freq)
+        platform.add_period_constraint(self.cd_sys2x.clk, 1e9/(sys_clk_freq*2))
+        platform.add_period_constraint(self.cd_sys2x_90.clk, 1e9/(sys_clk_freq*2))
         if with_usb:
             self.clock_domains.cd_usb_12 = ClockDomain()
             self.clock_domains.cd_usb_48 = ClockDomain()
@@ -93,18 +98,22 @@ class _CRG(Module):
         self.comb += por_done.eq(por_count == 0)
         self.sync.por += If(~por_done, por_count.eq(por_count - 1))
 
-        self.submodules.pll = pll = ECP5PLL()
+        self.submodules.pll = pll = ECP5PLL(bel="X70/Y49/EHXPLL_LR")
         self.comb += pll.reset.eq(~por_done)
         pll.register_clkin(clk48_raw, 48e6)
-        pll.create_clkout(self.cd_sys, sys_clk_freq)
+        pll.create_clkout(self.cd_sys, sys_clk_freq, margin = 0)
+        pll.create_clkout(self.cd_sys2x, 2*sys_clk_freq, margin = 0)
+        pll.create_clkout(self.cd_sys2x_90, 2*sys_clk_freq, margin = 0, phase = 270)
         if with_usb:
-            pll.create_clkout(self.cd_usb_48, 48e6, 0, with_reset=False)
-            pll.create_clkout(self.cd_usb_12, 12e6, 0, with_reset=False)
+            self.submodules.pll2 = pll2 = ECP5PLL()
+            self.comb += pll2.reset.eq(~por_done)
+            pll2.register_clkin(clk48_raw, 48e6)
+            pll2.create_clkout(self.cd_usb_48, 48e6, 0, with_reset=False)
+            pll2.create_clkout(self.cd_usb_12, 12e6, 0, with_reset=False)
 
 class _HyperRAM(Module):
     def __init__(self, platform, pins, clk_freq, hypermodule, base_address):
-        self.submodules.hyperphy = ECP5HYPERRAMPHY(
-                pins, sys_clk_freq=clk_freq)
+        self.submodules.hyperphy = ECP5HYPERRAMPHY2x(pins)
         self.submodules.hyperram = LiteHyperRAMCore(
                 phy      = self.hyperphy,
                 module   = hypermodule,
@@ -116,3 +125,6 @@ class _HyperRAM(Module):
                 wishbone = wb_hyperram,
                 port     = port,
                 base_address = base_address)
+
+    def get_csrs(self):
+        return self.hyperram.get_csrs()
