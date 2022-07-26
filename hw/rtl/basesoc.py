@@ -12,6 +12,7 @@ from .ioregisters import IORegisters
 from .vuart import VUART
 from .wbmaster import WBMaster
 from .vexriscvdebug import VexRiscvDebug
+from .ledpwm import LEDPWM
 
 
 class SoCIORegisters(IORegisters):
@@ -122,6 +123,12 @@ class BaseSoC(SoCCore):
         usr_btn = platform.request("usr_btn", loose=True)
         if usr_btn is not None:
             self.comb += self.bus_manager.reset_control.ext_reset.eq(~usr_btn)
+
+        # RGB LED
+        rgb_led = platform.request("rgb_led", loose=True)
+        if rgb_led is not None:
+            self.submodules.leds = LEDPWM(rgb_led, self.sys_clk_freq,
+                                          reset_on='g', reset_bright=50)
 
         # SDCard
         self.add_spi_sdcard()
