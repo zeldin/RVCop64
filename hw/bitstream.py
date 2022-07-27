@@ -27,6 +27,10 @@ def main():
         "--sys-clk-freq", default=64e6,
         help="System clock frequency (default=64MHz)"
     )
+    uart_action = parser.add_argument(
+        "--uart", default=None, choices=["serial", "usb_acm"],
+        help="Connect main UART to pins or USB, instead of to VUART"
+    )
     parser.add_argument(
         "--usb", default=None, choices=["eptri", "simplehostusb", "debug"],
         help="Include USB functionality"
@@ -44,6 +48,10 @@ def main():
     add_platform_args(parser)
     args = parser.parse_args()
 
+    # Check for invalid combinations
+    if args.uart == "usb_acm" and args.usb is not None:
+        parser.error(str(argparse.ArgumentError(uart_action, "invalid choice: 'usb_acm' can not be used together with --usb")))
+
     # load our platform file
     platform = Platform(**platform_argdict(args))
 
@@ -54,8 +62,9 @@ def main():
     cpu_variant = "standard+debug"
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
-		  usb=args.usb, clk_freq=int(float(args.sys_clk_freq)),
-		  output_dir=output_dir)
+                  uart_name="stream" if args.uart is None else args.uart,
+                  usb=args.usb, clk_freq=int(float(args.sys_clk_freq)),
+                  output_dir=output_dir)
     builder = Builder(soc, output_dir=output_dir,
                       csr_csv=os.path.join(output_dir, "csr.csv"),
                       csr_svd=os.path.join(output_dir, "soc.svd"),

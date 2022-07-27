@@ -24,7 +24,7 @@
 [submodule "hw/deps/valentyusb"]
 	path = hw/deps/valentyusb
 	url = https://github.com/zeldin/valentyusb.git
-	branch = host
+	branch = hw_cdc_eptri
 [submodule "hw/deps/pythondata-software-picolibc"]
 	path = hw/deps/pythondata-software-picolibc
 	url = https://github.com/litex-hub/pythondata-software-picolibc.git

@@ -61,16 +61,18 @@ class BaseSoC(SoCCore):
     def __init__(self, platform,
                  output_dir="build",
                  clk_freq=int(64e6),
+                 uart_name="stream",
                  usb=None,
                  **kwargs):
 
         self.output_dir = output_dir
 
-        platform.add_crg(self, clk_freq, usb is not None)
+        platform.add_crg(self, clk_freq,
+                         uart_name=='usb_acm' or usb is not None)
 
         get_integrated_sram_size=getattr(platform, "get_integrated_sram_size",
                                          lambda: 0)
-        SoCCore.__init__(self, platform, clk_freq, uart_name="stream",
+        SoCCore.__init__(self, platform, clk_freq, uart_name=uart_name,
                          cpu_reset_address=self.mem_map["bios_rom"],
                          integrated_sram_size=get_integrated_sram_size(),
                          csr_data_width=32, **kwargs)
@@ -120,8 +122,9 @@ class BaseSoC(SoCCore):
         self.bus.add_region("c64", dma_region)
         self.bus.add_slave("c64", c64dma_wb)
         # Connect VUART
-        self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
-        self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
+        if uart_name == "stream":
+            self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
+            self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
         # Connect WBMaster
         self.bus.add_master(name="c64wbmaster", master=self.ioregs.wbmaster.wishbone)
         # Debug
