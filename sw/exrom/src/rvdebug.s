@@ -22,6 +22,7 @@ faclo  = $65
 rvdebug_halt:
 	lda #2
 	sta rvdebug_set
+	bit rvdebug_status
 @waithalt:
 	bit rvdebug_status
 	beq @waithalt
@@ -94,6 +95,7 @@ rvdebug_getreg:
 	lda #$13     ; addi
 	jsr getreg_sub
 getreg_common:
+	lda rvdebug_regval
 	lda rvdebug_regval
 	sta faclo
 	lda rvdebug_regval+1
