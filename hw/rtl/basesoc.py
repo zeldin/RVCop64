@@ -155,8 +155,8 @@ class BaseSoC(SoCCore):
             elif usb == "simplehostusb":
                 self.submodules.usb = simplehostusb.SimpleHostUsb(usb_iobuf, cdc=True)
             elif usb == "debug":
-                self.submodules.usb = dummyusb.DummyUsb(usb_iobuf, cdc=True, debug=True)
-                self.bus.add_master(name="usbwishbonebridge", master=self.usb.debug_bridge.wishbone)
+                self.submodules.dummy_usb = dummyusb.DummyUsb(usb_iobuf, cdc=True, debug=True)
+                self.bus.add_master(name="usbwishbonebridge", master=self.dummy_usb.debug_bridge.wishbone)
             else:
                 raise ValueError("Unknown usb implementation " + usb)
 
