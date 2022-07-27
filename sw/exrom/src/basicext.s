@@ -422,7 +422,7 @@ help_message:
 	.byte "rvfetch cnt,intsa,extsa - copy from rvm", $0d, 0
 help_message_part_2:
 	.byte "rvswap cnt,intsa,extsa - exchange rvm", $0d
-	.byte "rvsys addr - set rv pc", $0d
+	.byte "rvsys addr,args... - set rv pc", $0d
 	.byte "rvmon - enter monitor", $0d
 	.byte $0d, 0
 	
@@ -527,6 +527,24 @@ rvsys:
 	ldx #1
 	jsr rvdebug_setreg
 	jsr rvdebug_flush_caches
+	ldx #10
+	bne @checkarg
+@nextarg:
+	cpx #18
+	bcc @getarg
+	rts
+@getarg:
+	stx poker
+	jsr chkcom
+	jsr frmnum
+	jsr getuint32
+	ldx poker
+	jsr rvdebug_setreg
+	inx
+@checkarg:
+	jsr chrgot
+	bne @nextarg
+	ldx #1
 	jsr rvdebug_jump
 	jmp rvdebug_continue
 
