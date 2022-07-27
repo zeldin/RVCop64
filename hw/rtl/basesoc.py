@@ -37,6 +37,16 @@ class BaseSoC(SoCCore):
         "crg":            1,
         "uart":           2,
         "timer0":         3,
+        "leds":           4,
+        "spisdcard":      5,
+        "hyperram":       6,
+        "usb":            7,
+    }
+
+    interrupt_map = {
+        "uart":           0,
+        "timer0":         1,
+        "usb":            2,
     }
 
     SoCCore.mem_map = {
@@ -146,8 +156,6 @@ class BaseSoC(SoCCore):
                 self.bus.add_master(name="usbwishbonebridge", master=self.usb.debug_bridge.wishbone)
             else:
                 raise ValueError("Unknown usb implementation " + usb)
-            if self.irq.enabled and usb != "debug":
-                self.irq.add('usb')
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,
