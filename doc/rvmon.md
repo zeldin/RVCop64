@@ -68,6 +68,11 @@ _steps_ is omitted) and then halts again.  The next instruction to execute
 is then displayed.
 
 
+> `>` _addr_ _byte_ ...
+
+Modify memory.  The given bytes are written to memory starting at _addr_.
+
+
 > `;` _reg_ _value_ ...
 
 Set registers.  Starting with register number _reg_ (which must be

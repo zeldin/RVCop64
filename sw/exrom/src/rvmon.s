@@ -377,6 +377,26 @@ cmd_z:
 	jmp cmd_d_core
 
 
+cmd_greaterthan:
+	bcs @noarg
+	jsr addr_from_arg
+	jsr getop
+	bcc @yesarg
+@noarg:
+	jmp readline
+@okarg:
+	lda faclo
+	jsr putbyte
+	jsr getop
+	bcs @noarg
+@yesarg:
+	lda facmo
+	ora facmoh
+	ora facho
+	beq @okarg
+	jmp synerr
+
+
 cmd_semicolon:	
 	bcs @noarg
 	lda facmo
@@ -451,7 +471,7 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "dfgmrtxz;"
+	.byte "dfgmrtxz>;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -466,6 +486,7 @@ cmdfuncs:
 	.word cmd_t-1
 	.word cmd_x-1
 	.word cmd_z-1
+	.word cmd_greaterthan-1
 	.word cmd_semicolon-1
 
 
@@ -1447,8 +1468,8 @@ getbyte:
 	rts
 
 putbyte:
-	ldx #$03
-	stx rvmem_cmd
+	ldy #$03
+	sty rvmem_cmd
 	sta rvmem_data
 @wait:
 	bit rvmem_cmd
