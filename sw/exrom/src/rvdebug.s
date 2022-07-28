@@ -2,6 +2,7 @@
 	.global rvdebug_halt, rvdebug_continue, rvdebug_step
 	.global rvdebug_setreg, rvdebug_getreg, rvdebug_getpc, rvdebug_jump
 	.global rvdebug_flush_ic, rvdebug_flush_dc, rvdebug_flush_caches
+	.global rvdebug_check_halted
 
 
 rvdebug_status = $de30
@@ -28,6 +29,11 @@ rvdebug_halt:
 	beq @waithalt
 	rts
 
+rvdebug_check_halted:
+	lda #2
+	bit rvdebug_status
+	bit rvdebug_status
+	rts
 
 rvdebug_step:
 	lda #$10

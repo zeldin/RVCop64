@@ -2,7 +2,7 @@
 	.import rvmem_addr, rvmem_cmd, rvmem_data
 	.import rvdebug_halt, rvdebug_getreg, rvdebug_getpc, rvdebug_step
 	.import rvdebug_setreg, rvdebug_jump, rvdebug_continue
-	.import rvdebug_flush_caches
+	.import rvdebug_flush_caches, rvdebug_check_halted
 
 	.global rvmon
 
@@ -349,6 +349,34 @@ cmd_r:
 	jmp rvdebug_getpc
 
 
+cmd_j:
+	jsr rvdebug_flush_caches
+	bcs @synerr
+	ldx #1
+	jsr rvdebug_setreg
+	jsr rvdebug_jump
+	lda #0
+	sta facho
+	sta facmoh
+	lda #>ebreak_instr
+	sta facmo
+	lda #<ebreak_instr
+	sta faclo
+	ldx #1
+	jsr rvdebug_setreg
+	jsr rvdebug_continue
+@wait_ebreak:
+	jsr stop
+	beq @j_done
+	jsr rvdebug_check_halted
+	beq @wait_ebreak
+@j_done:
+	jsr rvdebug_halt
+	jmp readline
+@synerr:
+	jmp synerr
+
+
 cmd_g:
 	jsr rvdebug_flush_caches
 	bcs @noarg
@@ -506,7 +534,7 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "cdfgmrtxz>;"
+	.byte "cdfgjmrtxz>;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -517,6 +545,7 @@ cmdfuncs:
 	.word cmd_d-1
 	.word cmd_f-1
 	.word cmd_g-1
+	.word cmd_j-1
 	.word cmd_m-1
 	.word cmd_r-1
 	.word cmd_t-1
@@ -1519,3 +1548,7 @@ incaddr:
 	lda #$80
 	sta rvmem_cmd
 	rts
+
+	.align 4
+ebreak_instr:	
+	.byte $73,$00,$10,$00

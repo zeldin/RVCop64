@@ -44,6 +44,12 @@ If an _address_ is provided, then the RISC-V processor will start executing
 at that address, otherwise it resumes from the point where it was halted.
 
 
+> 'J' _address_
+
+Jump.  Start the RISC-V processor executing at _address_, and wait for the
+function to return, then halt the processor again.
+
+
 > `M` _start-address_ _end-address_
 
 Memory dump.  Both _start-address_ and _end-address_ can be omitted.
