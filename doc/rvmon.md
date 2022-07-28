@@ -19,6 +19,13 @@ memory using the `T` command.
 The following commands are supported:
 
 
+> `C` _start-address_ _end-address_ _other-address_
+
+Compare.  Memory starting at _start-address_ and ending at
+_end-address_ is compared to memory at _target-address_, and the
+addresses of all non-matching bytes are printed.
+
+
 > `D` _start-address_ _end-address_
 
 Disassemble.  Both _start-address_ and _end-address_ can be omitted.

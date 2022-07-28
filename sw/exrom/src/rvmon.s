@@ -229,6 +229,41 @@ cmd_t:
 	jmp readline
 
 	
+cmd_c:
+	jsr getrangeand3rd
+	bcc @c_start
+	jmp synerr
+@c_start:
+	lda #$0d
+	jsr chrout
+@c_loop:
+	jsr stop
+	beq @c_done
+	jsr getbyte_noinc
+	sta tmp1
+	jsr swap_addr_and_arg
+	jsr getbyte
+	jsr swap_addr_and_arg
+	cmp tmp1
+	beq @same
+	jsr printaddr
+	lda #' '
+	jsr chrout
+	jsr chrout
+@same:
+	jsr incaddr
+	dec tempf1+4
+	bne @c_loop
+	dec tempf1+3
+	bne @c_loop
+	dec tempf1+2
+	bne @c_loop
+	dec tempf1+1
+	bne @c_loop
+@c_done:
+	jmp readline
+
+	
 cmd_m:
 	bcs @noarg
 	jsr addr_from_arg
@@ -471,13 +506,14 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "dfgmrtxz>;"
+	.byte "cdfgmrtxz>;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
 nbases = (* - base_sign)
 
 cmdfuncs:
+	.word cmd_c-1
 	.word cmd_d-1
 	.word cmd_f-1
 	.word cmd_g-1
@@ -1458,6 +1494,9 @@ unkinstr:
 
 
 
+getbyte_noinc:
+	lda #$40
+	.byte $2c ; bit abs
 getbyte:
 	lda #$c0
 	sta rvmem_cmd
@@ -1474,4 +1513,9 @@ putbyte:
 @wait:
 	bit rvmem_cmd
 	bmi @wait
+	rts
+
+incaddr:
+	lda #$80
+	sta rvmem_cmd
 	rts
