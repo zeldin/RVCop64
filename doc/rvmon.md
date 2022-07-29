@@ -44,7 +44,14 @@ If an _address_ is provided, then the RISC-V processor will start executing
 at that address, otherwise it resumes from the point where it was halted.
 
 
-> 'J' _address_
+> `H` _start-address_ _end-address_ _data_
+
+Hunt.  List all addresses between _start-address_ and _end-address_ where
+_data_ can be found.  The _data_ can be either a list of byte values, or
+a string prefixed by `'`.
+
+
+> `J` _address_
 
 Jump.  Start the RISC-V processor executing at _address_, and wait for the
 function to return, then halt the processor again.

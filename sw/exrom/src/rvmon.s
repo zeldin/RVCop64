@@ -14,6 +14,7 @@ tmp1   = $49
 tmp2   = $4a
 tmp3   = $4b
 tmp4   = $4c
+tmp5   = $4d
 tempf1 = $57
 facho  = $62
 facmoh = $63
@@ -90,6 +91,17 @@ readline:
 	pha
 
 getop:
+	jsr getop_low
+	pla
+	pla
+	jmp synerr
+
+getop_safe:
+	jsr getop_low
+	sec
+	rts
+	
+getop_low:
 	jsr getval
 	bcs @operr
 	jsr got_cmd_char
@@ -101,6 +113,8 @@ getop:
 @oksep:
 	clc
 @nonum:
+	pla
+	pla
 	rts
 @notend:
 	cmp #' '
@@ -108,9 +122,7 @@ getop:
 	cmp #','
 	beq @oksep
 @operr:
-	pla
-	pla
-	jmp synerr
+	rts
 
 
 cmd_d:
@@ -263,7 +275,87 @@ cmd_c:
 @c_done:
 	jmp readline
 
-	
+
+cmd_h:
+	jsr getrange
+	bcc @h_getdata
+@synerr:
+	jmp synerr
+@h_getdata:
+	ldy #0
+	jsr get_cmd_char
+	cmp #$27
+	beq @h_string
+	dex
+	sty tmp5
+	jsr getop
+	bcs @synerr
+@moreops:
+	ldy tmp5
+	lda faclo
+	sta buf,y
+	iny
+	sty tmp5
+	jsr getop
+	bcc @moreops
+	bcs @h_gotdata
+@h_string:
+	jsr get_cmd_char
+	cmp #0
+	beq @synerr
+@morestr:
+	sta buf,y
+	iny
+	jsr get_cmd_char
+	bne @morestr
+	sty tmp5
+@h_gotdata:
+	lda #$0d
+	jsr chrout
+@h_loop:
+	jsr stop
+	beq @h_done
+	jsr getbyte_noinc
+	cmp buf
+	bne @nomatch
+	lda rvmem_addr
+	sta faclo
+	lda rvmem_addr+1
+	sta facmo
+	lda rvmem_addr+2
+	sta facmoh
+	lda rvmem_addr+3
+	sta facho
+	ldy #0
+@h_compare:
+	jsr getbyte
+	cmp buf,y
+	bne @badmatch
+	iny
+	cpy tmp5
+	bne @h_compare
+@badmatch:
+	jsr addr_from_arg
+	cpy tmp5
+	bne @nomatch
+	jsr printaddr
+	lda #' '
+	jsr chrout
+	jsr chrout
+@nomatch:
+	jsr incaddr
+	dec tempf1+4
+	bne @h_loop
+	dec tempf1+3
+	bne @h_loop
+	dec tempf1+2
+	bne @h_loop
+	dec tempf1+1
+	bne @h_loop
+@h_done:
+	jmp readline
+
+
 cmd_m:
 	bcs @noarg
 	jsr addr_from_arg
@@ -534,7 +626,7 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "cdfgjmrtxz>;"
+	.byte "cdfghjmrtxz>;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
@@ -545,6 +637,7 @@ cmdfuncs:
 	.word cmd_d-1
 	.word cmd_f-1
 	.word cmd_g-1
+	.word cmd_h-1
 	.word cmd_j-1
 	.word cmd_m-1
 	.word cmd_r-1
@@ -1304,9 +1397,16 @@ arg_minus_addr:
 	rts
 
 getrangeand3rd:	
+	jsr getrange
+	bcc @okrange
+	rts
+	@okrange:
+	jmp getop_safe
+
+getrange:	
 	bcs @fail
 	jsr addr_from_arg
-	jsr getop
+	jsr getop_safe
 	bcs @fail
 	jsr arg_minus_addr
 	bcc @fail
@@ -1324,8 +1424,8 @@ getrangeand3rd:
 	inc facmoh
 @inc3:
 	inc facho
-	jsr savefac
-	jmp getop
+	clc
+	jmp savefac
 @fail:
 	sec
 	rts
