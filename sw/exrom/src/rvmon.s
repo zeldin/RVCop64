@@ -9,7 +9,7 @@
 basin  = $ffcf
 chrout = $ffd2
 stop   = $ffe1
-	
+
 tmp1   = $49
 tmp2   = $4a
 tmp3   = $4b
@@ -20,9 +20,14 @@ facho  = $62
 facmoh = $63
 facmo  = $64
 faclo  = $65
+ndx    = $c6
+pnt    = $d1
+pntr   = $d3
+lnmx   = $d5
 
 buf    = $200
-	
+keyd   = $277
+
 
 	.code
 
@@ -55,6 +60,7 @@ synerr:
 readline:
 	lda #$0d
 	jsr chrout
+readline_no_cr:
 	ldx #0
 @nextchr:
 	jsr basin
@@ -100,7 +106,18 @@ getop_safe:
 	jsr getop_low
 	sec
 	rts
-	
+
+getop_safe_paren:
+	jsr getop_low
+	bcs @done
+	dex
+	cmp #'('
+	clc
+	beq @done
+	sec
+@done:
+	rts
+
 getop_low:
 	jsr getval
 	bcs @operr
@@ -121,6 +138,7 @@ getop_low:
 	beq @oksep
 	cmp #','
 	beq @oksep
+	clc
 @operr:
 	rts
 
@@ -150,43 +168,8 @@ cmd_d_core:
 	jsr printaddr
 	lda #' '
 	jsr chrout
-	jsr getbyte
-	sta tmp1
-	jsr getbyte
-	sta tmp2
-	lda #3
-	and tmp1
-	cmp #3
-	bne @inst16
-	jsr getbyte
-	sta tmp3
-	jsr getbyte
-	sta tmp4
-	jsr printhex
-	lda tmp3
-	jsr printhex
-	lda tmp2
-	jsr printhex
-	lda tmp1
-	jsr printhex
-	jsr disinst32
-	ldx #4
+	jsr disinst
 	stx tmp1
-	bcc @nextinst
-	bcs @badinst
-@inst16:
-	lda tmp2
-	jsr printhex
-	lda tmp1
-	jsr printhex
-	jsr disinst16
-	ldx #2
-	stx tmp1
-	bcc @nextinst
-@badinst:
-	ldx #unkinstr-monitor_str
-	jsr monitor_print
-@nextinst:
 	sec
 	lda faclo
 	sbc tmp1
@@ -318,14 +301,7 @@ cmd_h:
 	jsr getbyte_noinc
 	cmp buf
 	bne @nomatch
-	lda rvmem_addr
-	sta faclo
-	lda rvmem_addr+1
-	sta facmo
-	lda rvmem_addr+2
-	sta facmoh
-	lda rvmem_addr+3
-	sta facho
+	jsr addr_to_arg
 	ldy #0
 @h_compare:
 	jsr getbyte
@@ -554,31 +530,8 @@ cmd_greaterthan:
 
 cmd_semicolon:	
 	bcs @noarg
-	lda facmo
-	ora facmoh
-	ora facho
-	bne @badreg
-	lda faclo
-	and #$0f
-	cmp #$0a
+	jsr arg_to_reg
 	bcs @badreg
-	lda faclo
-	cmp #$32
-	bcs @badreg
-	cmp #$20
-	bcc @lower
-	cmp #$30
-	bcs @upper
-	sbc #12-1
-	bne @okdec
-@upper:	
-	sbc #18
-	bne @okdec
-@lower:	
-	cmp #$10
-	bcc @okdec
-	sbc #6
-@okdec:
 	cmp #0
 	beq @setpc
 	sta tempf1+1
@@ -626,13 +579,14 @@ cmd_semicolon:
 
 
 cmdchars:
-	.byte "cdfghjmrtxz>;"
+	.byte "acdfghjmrtxz.>;"
 ncmds = (* - cmdchars)
 base_sign:
 	.byte "$+&%"
 nbases = (* - base_sign)
 
 cmdfuncs:
+	.word cmd_a-1
 	.word cmd_c-1
 	.word cmd_d-1
 	.word cmd_f-1
@@ -644,8 +598,49 @@ cmdfuncs:
 	.word cmd_t-1
 	.word cmd_x-1
 	.word cmd_z-1
+	.word cmd_a-1
 	.word cmd_greaterthan-1
 	.word cmd_semicolon-1
+
+
+disinst:
+	jsr getbyte
+	sta tmp1
+	jsr getbyte
+	sta tmp2
+	lda #3
+	and tmp1
+	cmp #3
+	bne @inst16
+	jsr getbyte
+	sta tmp3
+	jsr getbyte
+	sta tmp4
+	jsr printhex
+	lda tmp3
+	jsr printhex
+	lda tmp2
+	jsr printhex
+	lda tmp1
+	jsr printhex
+	jsr disinst32
+	ldx #4
+	bcs @badinst
+	rts
+@inst16:
+	lda tmp2
+	jsr printhex
+	lda tmp1
+	jsr printhex
+	jsr disinst16
+	ldx #2
+	stx tmp1
+	bcs @badinst
+	rts
+
+@badinst:
+	ldx #unkinstr-monitor_str
+	jmp monitor_print
 
 
 disinst32:
@@ -908,6 +903,7 @@ dis32branch:
 	sta tempf1+4
 	lda tmp2
 	asl
+	and #$1e
 	ora tempf1+4
 	sta tempf1+4
 	jmp printreladdr
@@ -965,28 +961,664 @@ dis32itype:
 	jmp printim12
 
 
+
+cmd_a:
+	bcs @synerr
+	jsr addr_from_arg
+@scan:
+	jsr get_cmd_char
+	beq @a_done
+	cmp #' '
+	beq @scan
+	dex
+@look_for_op:
+	jsr get_cmd_char
+	beq @synerr
+	cmp #' '
+	beq @look_for_op
+	dex
+	stx tmp5
+	ldy #0
+	beq @compare_op
+@compare_loop:
+	iny
+	inx
+@compare_op:
+	lda buf,x
+	sec
+	sbc instr_str,y
+	beq @compare_loop
+	cmp #$80
+	beq @found
+	ldx tmp5
+@skip_op:
+	iny
+	lda instr_str-1,y
+	bpl @skip_op
+	cpy #n_instr_str
+	bcc @compare_op
+	jsr getop
+	bcc @look_for_op
+@synerr:
+	jmp synerr
+@a_done:
+	jmp readline
+
+@found:
+	inx
+@to_instr_start:
+	lda instr_str-1,y
+	bmi @at_instr_start
+	dey
+	bne @to_instr_start
+@at_instr_start:
+	iny
+	tya
+	ldy #n_all_instr
+@look_for_instr:
+	cmp all_instr-1,y
+	beq @instr_found
+	dey
+	bne @look_for_instr
+	beq @synerr
+@instr_found:
+	lda #0
+	sta tempf1+3
+	sta tempf1+4
+	dey
+	cpy #mminstr-all_instr
+	bcs @upper_instr
+	cpy #storeinstr-all_instr
+	bcs @store_or_opimm
+	cpy #branchinstr-all_instr
+	bcs @branch_or_load
+	cpy #nofuncinstr-all_instr
+	bcs @ass_nofuncinstr
+	lda #((%1110011<<1)&$f8)
+	jsr init_instr
+	lda sysinstr_hipat,y
+	sta tempf1+4
+	lda sysinstr_lopat,y
+	sta tempf1+3
+	jmp @ass_noarg
+@branch_or_load:
+	tya
+	sbc #loadinstr-all_instr
+	bcs @ass_loadinstr
+	adc #loadinstr-branchinstr+(((%1100011)<<1)&$f8)
+	jmp @ass_b_type
+@ass_loadinstr:
+	ora #((%0000011<<1)&$f8)
+	jmp @ass_i_type_load
+@store_or_opimm:
+	tya
+	sbc #opimminstr-all_instr
+	bcs @ass_opimminstr
+	adc #opimminstr-storeinstr+((%0100011<<1)&$f8)
+	jmp @ass_s_type
+@ass_opimminstr:
+	cmp #8
+	bcc @not_srai
+	lda #$40
+	sta tempf1+4
+	lda #((%0010011<<1)&$f8)+5
+	bcs @ass_shiftimm
+@not_srai:
+	ora #((%0010011<<1)&$f8)
+	cmp #((%0010011<<1)&$f8)+1
+	beq @ass_shiftimm
+	cmp #((%0010011<<1)&$f8)+5
+	bne @ass_normalimm
+@ass_shiftimm:
+	jmp @ass_i_type_shift
+@ass_normalimm:
+	jmp @ass_i_type
+@ass_nofuncinstr:
+	tya
+	sbc #nofuncinstr-all_instr
+	beq @ass_lui
+	tay
+	dey
+	beq @ass_auipc
+	dey
+	beq @ass_jal
+@ass_jalr:
+	lda #((%1100111<<1)&$f8)
+	jmp @ass_i_type_load
+@ass_jal:
+	lda #((%1101111<<1)&$f8)
+	jmp @ass_j_type
+@ass_auipc:
+	lda #((%0010111<<1)&$f8)
+	.byte $2c ; bit abs
+@ass_lui:
+	lda #((%0110111<<1)&$f8)
+	jmp @ass_u_type
+@upper_instr:
+	cpy #multinstr-all_instr
+	bcs @mult_or_op
+	tya
+	sbc #csrinstr-all_instr-1
+	bcs @ass_csrinstr
+	adc #csrinstr-mminstr
+	bne @notfence
+	ldy #$0f
+	sty tempf1+4
+	ldy #$f0
+	sty tempf1+3
+@notfence:
+	ora #((%0001111<<1)&$f8)
+	jsr init_instr
+	jmp @ass_noarg
+@ass_csrinstr:
+	adc #((%1110011<<1)&$f8)
+	jsr init_instr
+	jsr @ass_rd
+	jsr @getimm12
+	jsr @putimm12
+	bit tempf1+2
+	bvs @ass_csri
+	jsr @ass_rs1
+	jmp @ass_noarg
+@ass_csri:
+	jsr @getimm12
+	lda facmo
+	bne @synerr_csr
+	lda faclo
+	cmp #$20
+	bcs @synerr_csr
+	jsr @ass_put_rs1
+	jmp @ass_noarg
+@synerr_csr:
+	jmp synerr
+@mult_or_op:
+	tya
+	sbc #opinstr-all_instr
+	bcs @ass_opinstr
+	adc #opinstr-multinstr+((%0110011<<1)&$f8)
+	inc tempf1+4
+	inc tempf1+4
+	bne @ass_multinst
+@ass_opinstr:
+	cmp #8
+	bcc @ass_op_notalt
+	beq @ass_sub
+	lda #5
+@ass_sub:
+	and #$7
+	ror tempf1+4
+	lsr tempf1+4
+@ass_op_notalt:
+	ora #((%0110011<<1)&$f8)
+@ass_multinst:
+	jmp @ass_r_type
+
+
+
+@ass_u_type:
+	jsr init_instr
+	jsr @ass_rd
+	jsr getop_safe
+	bcs @synerr_j
+	lda facho
+	bne @synerr_j
+	lda facmoh
+	cmp #$10
+	bcs @synerr_j
+	asl faclo
+	rol facmo
+	rol
+	asl faclo
+	rol facmo
+	rol
+	asl faclo
+	rol facmo
+	rol
+	asl faclo
+	rol facmo
+	rol
+	sta tempf1+4
+	lda facmo
+	sta tempf1+3
+	lda faclo
+	ora tempf1+2
+	sta tempf1+2
+	jmp @ass_noarg
+
+@ass_j_type:
+	jsr init_instr
+	jsr @ass_rd
+	jsr @ass_reladdr
+	lda facmoh
+	bmi @negjump
+	cmp #$10
+	bcs @synerr_j
+	ldy facho
+	beq @j_ok
+@synerr_j:
+	jmp synerr
+@negjump:
+	cmp #$f0
+	bcc @synerr_j
+	inc facho
+	bne @synerr_j
+@j_ok:
+	and #$0f
+	sta tempf1+3
+	lda facmo
+	and #$f0
+	ora tempf1+2
+	sta tempf1+2
+	lsr faclo
+	bcs @synerr_j
+	lda facmo
+	and #$0f
+	cmp #8
+	rol faclo
+	asl faclo
+	rol
+	asl faclo
+	rol
+	asl faclo
+	rol
+	asl faclo
+	rol
+	asl
+	sta tempf1+4
+	lda facmoh
+	and #$10
+	cmp #$10
+	ror tempf1+4
+	lda faclo
+	ora tempf1+3
+	sta tempf1+3
+	jmp @ass_noarg
+	
+@ass_s_type:
+	jsr init_instr
+	jsr @ass_rs2
+	jsr @getimm12_paren
+	asl tempf1+1
+	lda faclo
+	lsr
+	ror tempf1+1
+	and #$0f
+	ora tempf1+2
+	sta tempf1+2
+	lda facmo
+	asl faclo
+	rol
+	asl faclo
+	rol
+	asl faclo
+	rol
+	lsr tempf1+4
+	rol
+	sta tempf1+4
+	jsr @ass_rs1_paren
+	jmp @ass_noarg
+
+@ass_i_type_load:
+	jsr init_instr
+	jsr @ass_rd
+	jsr @getimm12_paren
+	jsr @putimm12
+	jsr @ass_rs1_paren
+	jmp @ass_noarg	
+@ass_i_type_shift:
+	jsr init_instr
+	jsr @ass_rd
+	jsr @ass_rs1
+	jsr getop_safe
+	bcs @synerr_b
+	lda facho
+	ora facmoh
+	ora facmo
+	bne @synerr_b
+	lda faclo
+	cmp #32
+	bcc @ass_i_common
+	bcs @synerr_b
+@ass_i_type:
+	jsr init_instr
+	jsr @ass_rd
+	jsr @ass_rs1
+	jsr @getimm12
+@ass_i_common:
+	jsr @putimm12
+	jmp @ass_noarg
+
+@ass_b_type:
+	jsr init_instr
+	jsr @ass_rs1
+	jsr @ass_rs2
+	jsr @ass_reladdr
+	lda facmo
+	bmi @negbranch
+	cmp #$10
+	bcs @synerr_b
+	lda facho
+	ora facmoh
+	beq @checkodd
+@synerr_b:
+	jmp synerr
+@negbranch:
+	cmp #$f0
+	bcc @synerr_b
+	lda #$ff
+	cmp facho
+	bne @synerr_b
+	cmp facmoh
+	bne @synerr_b
+@checkodd:
+	lda faclo
+	lsr
+	bcs @synerr_b
+	and #$0f
+	ora tempf1+2
+	sta tempf1+2
+	asl tempf1+1
+	lda faclo
+	and #$e0
+	asl
+	sta faclo
+	lda facmo
+	and #$1f
+	ora faclo
+	ror
+	ror
+	ror
+	ror
+	ror tempf1+1
+	sta facmo
+	ror
+	lda facmo
+	ror
+	ora tempf1+4
+	sta tempf1+4
+	jmp @ass_noarg
+
+@ass_r_type:
+	jsr init_instr
+	jsr @ass_rd
+	jsr @ass_rs1
+	jsr @ass_rs2
+
+@ass_noarg:
+	jsr get_cmd_char
+	beq @instr_done
+	cmp #' '
+	beq @ass_noarg
+@synerr2:
+	jmp synerr
+@instr_done:
+	jsr addr_to_arg
+	lda tempf1+1
+	jsr putbyte
+	lda tempf1+2
+	jsr putbyte
+	lda tempf1+3
+	jsr putbyte
+	lda tempf1+4
+	jsr putbyte
+	jsr addr_from_arg
+	ldy lnmx
+	lda #' '
+@clrline:
+	sta (pnt),y
+	dey
+	bpl @clrline
+	iny
+	sty pntr
+	jsr @printa
+	jsr disinst
+	lda #$0d
+	jsr chrout
+	jsr @printa
+	lda #$91 ; use crsr-up+down to force basin to read whole line
+	sta keyd
+	lda #$11
+	sta keyd+1
+	lda #2
+	sta ndx
+	jmp readline_no_cr
+
+@printa:
+	lda #'a'
+	jsr chrout
+	jsr printaddr
+	lda #' '
+	jmp chrout
+
+@putimm12:
+	lda faclo
+	asl
+	rol facmo
+	asl
+	rol facmo
+	asl
+	rol facmo
+	asl
+	rol facmo
+	ora tempf1+3
+	sta tempf1+3
+	lda facmo
+	ora tempf1+4
+	sta tempf1+4
+	rts
+
+@ass_reladdr:
+	jsr getop_safe
+	bcs @ass_fail
+	sec
+	lda faclo
+	sbc rvmem_addr
+	sta faclo
+	lda facmo
+	sbc rvmem_addr+1
+	sta facmo
+	lda facmoh
+	sbc rvmem_addr+2
+	sta facmoh
+	lda facho
+	sbc rvmem_addr+3
+	sta facho
+	clc
+	rts
+
+@getimm12_paren:
+	jsr getop_safe_paren
+	jmp @getimm12_common
+@getimm12:
+	jsr getop_safe
+@getimm12_common:
+	bcs @ass_fail
+	lda facho
+	bmi @negi
+	ora facmoh
+	bne @ass_fail
+	lda facmo
+	cmp #$10
+	bcs @ass_fail
+	rts
+@negi:
+	lda #$ff
+	cmp facho
+	bne @ass_fail
+	cmp facmoh
+	bne @ass_fail
+	lda facmo
+	cmp #$f8
+	bcc @ass_fail
+	rts
+	
+@ass_fail:
+	pla
+	pla
+	jmp synerr
+	
+@ass_rd:
+	jsr ass_reg
+	bcs @ass_fail
+	lsr
+	ora tempf1+2
+	sta tempf1+2
+	lda #0
+	ror
+	ora tempf1+1
+	sta tempf1+1
+	rts
+
+@ass_rs1_paren:
+	jsr ass_reg_paren
+	jmp @ass_rs1_common
+@ass_rs1:
+	jsr ass_reg
+@ass_rs1_common:
+	bcs @ass_fail
+@ass_put_rs1:
+	lsr
+	ora tempf1+3
+	sta tempf1+3
+	lda #0
+	ror
+	ora tempf1+2
+	sta tempf1+2
+	rts
+
+@ass_rs2:
+	jsr ass_reg
+	bcs @ass_fail
+	asl
+	asl
+	asl
+	asl
+	ora tempf1+3
+	sta tempf1+3
+	lda #0
+	rol
+	ora tempf1+4
+	sta tempf1+4
+	rts
+
+init_instr:
+	sta tempf1+2
+	lsr
+	ora #3
+	sta tempf1+1
+	lda #7
+	and tempf1+2
+	asl
+	asl
+	asl
+	asl
+	sta tempf1+2
+	rts
+
+ass_reg_paren:
+	jsr got_cmd_char
+	beq @bad
+	cmp #','
+	beq @bad
+	txa
+	pha
+@loop1:
+	jsr get_cmd_char
+	cmp #' '
+	beq @loop1
+	cmp #'('
+	bne @badx
+	lda #' '
+	sta buf-1,x
+@loop2:
+	jsr get_cmd_char
+	beq @badx
+	cmp #')'
+	bne @loop2
+	lda #' '
+	sta buf-1,x
+@loop3:
+	jsr get_cmd_char
+	beq @okx
+	cmp #' '
+	beq @loop3
+@badx:
+	pla
+	tax
+@bad:
+	sec
+	rts
+@okx:
+	pla
+	tax
+
+ass_reg:
+	jsr get_cmd_char
+	cmp #' '
+	beq ass_reg
+	cmp #'x'
+	beq @gotx
+	dex
+@gotx:
+	jsr getop_safe
+	bcc arg_to_reg
+	rts
+
+arg_to_reg:
+	lda facmo
+	ora facmoh
+	ora facho
+	bne @badreg
+	lda faclo
+	and #$0f
+	cmp #$0a
+	bcs @badreg
+	lda faclo
+	cmp #$32
+	bcs @badreg
+	cmp #$20
+	bcc @lower
+	cmp #$30
+	bcs @upper
+	sbc #12-1
+	bne @okdec
+@upper:	
+	sbc #18
+	bne @okdec
+@lower:	
+	cmp #$10
+	bcc @okdec
+	sbc #6
+@okdec:
+	clc
+	rts
+@badreg:
+	sec
+	rts
+	
+
 instr_str:
 is_lui:	  .byte "lu",'i'+$80
 is_auipc: .byte "auip",'c'+$80
-is_jal:	  .byte "ja",'l'+$80
 is_jalr:  .byte "jal",'r'+$80
+is_jal:	  .byte "ja",'l'+$80
 is_beq:   .byte "be",'q'+$80
 is_bne:   .byte "bn",'e'+$80
-is_blt:   .byte "bl",'t'+$80
-is_bge:   .byte "bg",'e'+$80
 is_bltu:  .byte "blt",'u'+$80
 is_bgeu:  .byte "bge",'u'+$80
+is_blt:   .byte "bl",'t'+$80
+is_bge:   .byte "bg",'e'+$80
+is_lbu:   .byte "lb",'u'+$80
+is_lhu:   .byte "lh",'u'+$80
 is_lb:    .byte "l",'b'+$80
 is_lh:    .byte "l",'h'+$80
 is_lw:    .byte "l",'w'+$80
-is_lbu:   .byte "lb",'u'+$80
-is_lhu:   .byte "lh",'u'+$80
 is_sb:    .byte "s",'b'+$80
 is_sh:    .byte "s",'h'+$80
 is_sw:    .byte "s",'w'+$80
 is_addi:  .byte "add",'i'+$80
-is_slti:  .byte "slt",'i'+$80
 is_sltiu: .byte "slti",'u'+$80
+is_slti:  .byte "slt",'i'+$80
 is_xori:  .byte "xor",'i'+$80
 is_ori:   .byte "or",'i'+$80
 is_andi:  .byte "and",'i'+$80
@@ -996,34 +1628,35 @@ is_srai:  .byte "sra",'i'+$80
 is_add:	  .byte "ad",'d'+$80
 is_sub:	  .byte "su",'b'+$80
 is_sll:	  .byte "sl",'l'+$80
-is_slt:	  .byte "sl",'t'+$80
 is_sltu:  .byte "slt",'u'+$80
+is_slt:	  .byte "sl",'t'+$80
 is_xor:	  .byte "xo",'r'+$80
 is_srl:	  .byte "sr",'l'+$80
 is_sra:	  .byte "sr",'a'+$80
 is_or:	  .byte "o",'r'+$80
 is_and:	  .byte "an",'d'+$80
-is_fence: .byte "fenc",'e'+$80
 is_fencei:.byte "fence.",'i'+$80
+is_fence: .byte "fenc",'e'+$80
 is_ecall: .byte "ecal",'l'+$80
 is_ebreak:.byte "ebrea",'k'+$80
 is_sret:  .byte "sre",'t'+$80
 is_wfi:   .byte "wf",'i'+$80
 is_mret:  .byte "mre",'t'+$80
-is_csrrw: .byte "csrr",'w'+$80
-is_csrrs: .byte "csrr",'s'+$80
-is_csrrc: .byte "csrr",'c'+$80
 is_csrrwi:.byte "csrrw",'i'+$80
 is_csrrsi:.byte "csrrs",'i'+$80
 is_csrrci:.byte "csrrc",'i'+$80
-is_mul:   .byte "mu",'l'+$80
-is_mulh:  .byte "mul",'h'+$80
+is_csrrw: .byte "csrr",'w'+$80
+is_csrrs: .byte "csrr",'s'+$80
+is_csrrc: .byte "csrr",'c'+$80
 is_mulhsu:.byte "mulhs",'u'+$80
 is_mulhu: .byte "mulh",'u'+$80
-is_div:   .byte "di",'v'+$80
+is_mulh:  .byte "mul",'h'+$80
+is_mul:   .byte "mu",'l'+$80
 is_divu:  .byte "div",'u'+$80
-is_rem:   .byte "re",'m'+$80
+is_div:   .byte "di",'v'+$80
 is_remu:  .byte "rem",'u'+$80
+is_rem:   .byte "re",'m'+$80
+n_instr_str = (* - instr_str)
 
 
 sysinstr_hipat:
@@ -1031,6 +1664,8 @@ sysinstr_hipat:
 sysinstr_lopat:
 	.byte $00,$10,$20,$50,$20
 
+all_instr:	
+	
 sysinstr:
 	.byte is_ecall-instr_str+1
 	.byte is_ebreak-instr_str+1
@@ -1116,6 +1751,9 @@ opinstr:
 	.byte is_sub-instr_str+1
 	.byte is_sra-instr_str+1
 
+n_all_instr = (* - all_instr)
+
+	
 getrd:
 	lda tmp1
 	asl
@@ -1361,6 +1999,16 @@ addr_from_arg:
 	sta rvmem_addr+3
 	rts
 
+addr_to_arg:
+	lda rvmem_addr
+	sta faclo
+	lda rvmem_addr+1
+	sta facmo
+	lda rvmem_addr+2
+	sta facmoh
+	lda rvmem_addr+3
+	sta facho
+
 swap_addr_and_arg:
 	ldy faclo
 	ldx rvmem_addr
@@ -1430,7 +2078,6 @@ getrange:
 	sec
 	rts
 
-	
 printdec5_2dig:
 	cmp #10
 	bcs printdec5

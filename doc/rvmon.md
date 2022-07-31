@@ -19,6 +19,13 @@ memory using the `T` command.
 The following commands are supported:
 
 
+> `A` _address_ _opcode_ _arguments_
+
+Assemble.  Only base instructions are recognized, no pseudoinstructions.
+Furthermore, ABI names of registers are not recognized, only `x` followed
+by an integer 0-31.  The assemble command can also be given as `.`.
+
+
 > `C` _start-address_ _end-address_ _other-address_
 
 Compare.  Memory starting at _start-address_ and ending at
