@@ -9,6 +9,7 @@ plot = $fff0
 
 pnt  = $d1
 pntr = $d3
+lnmx = $d5
 
 
 	.zeropage
@@ -181,17 +182,19 @@ ansi_print:
 	beq @clrtobol
 	ldy #0
 @clrtoeol:
-	sta (pnt),y
+	dey
+@clrtoeol_loop:
 	iny
-	cpy #40
-	bcc @clrtoeol
+	sta (pnt),y
+	cpy lnmx
+	bcc @clrtoeol_loop
 	rts
 @clrtobol:
 	sta (pnt),y
 	dey
 	bpl @clrtobol
 	rts
-		
+
 @sgr:
 	dex
 @next_sgr:	
