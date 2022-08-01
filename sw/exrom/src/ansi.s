@@ -3,6 +3,7 @@
 	.global ansi_getc, ansi_cursor_on, ansi_cursor_off
 
 
+findst = $e6ed
 chrout = $ffd2
 getin = $ffe4
 plot = $fff0
@@ -308,6 +309,7 @@ ascii_print:
 @cr:
 	sec
 	jsr plot
+	jsr findst
 	ldy #0
 	clc
 	jmp plot
