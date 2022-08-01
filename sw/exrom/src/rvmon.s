@@ -169,7 +169,6 @@ cmd_d_core:
 	lda #' '
 	jsr chrout
 	jsr disinst
-	stx tmp1
 	sec
 	lda faclo
 	sbc tmp1
@@ -625,6 +624,7 @@ disinst:
 	jsr printhex
 	jsr disinst32
 	ldx #4
+	stx tmp1
 	bcs @badinst
 	rts
 @inst16:
