@@ -674,6 +674,9 @@ dis32func:
 dis32load:
 	lda loadinstr,x
 	beq badinst0
+	.byte $2c ; bit abs
+dis32jalr:
+	lda #is_jalr-instr_str+1
 	jsr printinstrspc
 	jsr getrd
 	jsr printregcomma
@@ -937,8 +940,6 @@ badinst:
 	sec
 	rts
 
-dis32jalr:
-	lda #is_jalr-instr_str+1
 dis32itype:
 	beq badinst
 	jsr printinstrspc
