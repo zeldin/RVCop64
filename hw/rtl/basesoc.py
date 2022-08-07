@@ -62,7 +62,8 @@ class BaseSoC(SoCCore):
                  output_dir="build",
                  clk_freq=int(64e6),
                  uart_name="stream",
-                 usb=None,
+                 usb=None, with_jtagbone=False,
+                 with_uartbone=False, uartbone_baudrate=115200,
                  **kwargs):
 
         self.output_dir = output_dir
@@ -159,6 +160,13 @@ class BaseSoC(SoCCore):
                 self.bus.add_master(name="usbwishbonebridge", master=self.dummy_usb.debug_bridge.wishbone)
             else:
                 raise ValueError("Unknown usb implementation " + usb)
+
+        # JTAG/serial debug
+        if with_jtagbone:
+            self.add_jtagbone()
+        if with_uartbone:
+            self.add_uartbone(baudrate=uartbone_baudrate)
+
 
     def build(self, *args, **kwargs):
         with open(os.path.join(self.output_dir,

@@ -28,13 +28,22 @@ def main():
         help="System clock frequency (default=64MHz)"
     )
     uart_action = parser.add_argument(
-        "--uart", default=None, choices=["serial", "usb_acm"],
-        help="Connect main UART to pins or USB, instead of to VUART"
+        "--uart", default=None, choices=["serial", "usb_acm", "jtag_uart", "crossover"],
+        help="Connect main UART to pins or USB or JTAG, instead of to VUART"
     )
     parser.add_argument(
         "--usb", default=None, choices=["eptri", "simplehostusb", "debug"],
         help="Include USB functionality"
     )
+    parser.add_argument(
+        "--jtag-debug", action='store_true',
+        help="Enable litex-server bridge through JTAG")
+    parser.add_argument(
+        "--serial-debug", action='store_true',
+        help="Enable litex-server bridge through serial port pins")
+    parser.add_argument(
+        "--serial-debug-baudrate", type=int, default=115200,
+        help="Set baudrate for serial port debug bridge")
     parser.add_argument(
         "--seed", type=int, default=1, help="seed to use in nextpnr"
     )
@@ -51,6 +60,10 @@ def main():
     # Check for invalid combinations
     if args.uart == "usb_acm" and args.usb is not None:
         parser.error(str(argparse.ArgumentError(uart_action, "invalid choice: 'usb_acm' can not be used together with --usb")))
+    if args.uart == "jtag_uart" and args.jtag_debug:
+        parser.error(str(argparse.ArgumentError(uart_action, "invalid choice: 'jtag_uart' can not be used together with --jtag-debug")))
+    if args.uart == "serial" and args.serial_debug:
+        parser.error(str(argparse.ArgumentError(uart_action, "invalid choice: 'serial' can not be used together with --serial-debug")))
 
     # load our platform file
     platform = Platform(**platform_argdict(args))
@@ -63,7 +76,10 @@ def main():
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
                   uart_name="stream" if args.uart is None else args.uart,
-                  usb=args.usb, clk_freq=int(float(args.sys_clk_freq)),
+                  usb=args.usb, with_jtagbone=args.jtag_debug,
+                  with_uartbone=args.serial_debug,
+                  uartbone_baudrate=args.serial_debug_baudrate,
+                  clk_freq=int(float(args.sys_clk_freq)),
                   output_dir=output_dir)
     builder = Builder(soc, output_dir=output_dir,
                       csr_csv=os.path.join(output_dir, "csr.csv"),

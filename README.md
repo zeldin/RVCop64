@@ -10,6 +10,9 @@ and USB is done though the [LiteX][3] framework.
 The bitstream includes an EXROM containing [BASIC extensions](doc/basic.md)
 and a [machine code monitor](doc/rvmon.md).
 
+For debugging via USB, serial port or JTAG, please see the
+[debugging](doc/debugging.md) documentation.
+
 
 Building
 --------
@@ -43,21 +46,39 @@ please watch out for warnings from `nextpnr` about failure to close timing.
 If decreasing the frequency, be aware that too low frequency can cause
 the external RAM to malfunction.
 
-> --uart {serial,usb_acm}
+> --uart {serial,usb_acm,jtag_uart,crossover}
 
-Changes the connection of the RISC-V processors built-in serial port.
+Changes the connection of the RISC-V processor's built-in serial port.
 By default it is connected to a virtual UART which is accessed through
 the `rvterm` BASIC command.  Specifying `serial` connects it to the
 physical serial port pins (J2) instead.  Specifying `usb_acm` connects
-it to the USB port, as an ACM device.
+it to the USB port, as an ACM device.  Specifying `jtag_uart` connects
+it to the JTAG, for use with `litex_term jtag`.  Specifying `crossover`
+connects it to a virtual UART accessible through [`litex_server`][4]
+(please also enable one or more debug ports).
 
 > --usb {eptri,simplehostusb,debug}
 
 Adds custom USB functionality.  This argument can not be used together
- with `--uart usb_acm`.  The value `debug` adds a USB bridge for
+with `--uart usb_acm`.  The value `debug` adds a USB bridge for
 [`litex_server`][4].  The values `eptri` and `simplehostusb` adds register
 interfaces for USB device and USB host respectively, which can be used by
 the software running on the RISC-V processor.
+
+> --jtag-debug
+
+Adds a JTAG bridge for [`litex_server`][4].  This argument can not be used
+together with `--uart jtag_uart`.
+
+> --serial-debug
+
+Adds a serial port (J2) bridge for [`litex_server`][4].  This argument
+can not be used together with `--uart serial`.
+
+> --serial-debug-baudrate _SERIAL_DEBUG_BAUDRATE_
+
+Sets the baudrate for the serial port debug bridge enabled with
+`--serial-debug`.  The default is 115200 bps.
 
 > --seed _SEED_
 
