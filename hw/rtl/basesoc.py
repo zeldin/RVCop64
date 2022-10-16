@@ -41,6 +41,7 @@ class BaseSoC(SoCCore):
         "spisdcard":      5,
         "hyperram":       6,
         "usb":            7,
+        "i2c":            8,
     }
 
     interrupt_map = {
@@ -160,6 +161,10 @@ class BaseSoC(SoCCore):
                 self.bus.add_master(name="usbwishbonebridge", master=self.dummy_usb.debug_bridge.wishbone)
             else:
                 raise ValueError("Unknown usb implementation " + usb)
+
+        # Expansion
+        if hasattr(platform, 'add_expansions'):
+            platform.add_expansions(self)
 
         # JTAG/serial debug
         if with_jtagbone:

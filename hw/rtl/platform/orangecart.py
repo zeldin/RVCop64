@@ -1,5 +1,6 @@
 from migen import Module, Signal, ClockDomain, If
 
+from litex.soc.cores.bitbang import I2CMaster
 from litex.soc.cores.clock import ECP5PLL
 from litex.soc.interconnect.wishbone import SRAM, Interface
 
@@ -12,7 +13,7 @@ from litex.build.generic_platform import *
 
 import os
 
-from litex_boards.platforms.orangecart import Platform as PlatformOC
+from litex_boards.platforms import orangecart
 
 available_hyperram_modules = {
     "S27KS0641DP": S27KS0641DP,
@@ -29,27 +30,31 @@ def add_platform_args(parser):
         help="HyperRAM device (default=S70KS1281DP)"
     )
     parser.add_argument(
-	"--toolchain", default="trellis",
-	help="Gateware toolchain to use, trellis (default) or diamond"
+        "--pmod", default=None, choices=["spi", "serial", "i2c", "i2s"]
+    )
+    parser.add_argument(
+        "--toolchain", default="trellis",
+        help="Gateware toolchain to use, trellis (default) or diamond"
     )
 
 def platform_argdict(args):
     return {
         "device":           args.device,
         "hyperram_device":  args.hyperram_device,
-	"toolchain":        args.toolchain,
+        "pmod":             args.pmod,
+        "toolchain":        args.toolchain,
     }
 
 
-class Platform(PlatformOC):
-    def __init__(self, revision=None, device="25F", hyperram_device="S70KS1281DP", toolchain="trellis"):
+class Platform(orangecart.Platform):
+    def __init__(self, revision=None, device="25F", hyperram_device="S70KS1281DP", pmod=None, toolchain="trellis"):
         self.revision = revision
         self.device = device
         self.hw_platform = "orangecart"
         self.hyperram_device = hyperram_device
         self.hyperram_module = available_hyperram_modules.get(hyperram_device)
-
-        PlatformOC.__init__(self, device=device, revision=revision, toolchain=toolchain)
+        self.pmod = pmod
+        orangecart.Platform.__init__(self, device=device, revision=revision, toolchain=toolchain)
 
     def add_crg(self, soc, sys_clk_freq, with_usb=False):
         soc.submodules.crg = _CRG(self, sys_clk_freq, with_usb)
@@ -67,6 +72,17 @@ class Platform(PlatformOC):
             self, self.request("hyperram"), soc.sys_clk_freq,
             self.hyperram_module(), soc.mem_map["main_ram"])
         return hyperram.size, hyperram.slave
+
+    def add_expansions(self, soc):
+        if self.pmod == 'spi':
+            self.add_extension(orangecart.pmod_spi)
+        elif self.pmod == 'serial':
+            self.add_extension(orangecart.pmod_serial)
+        elif self.pmod == 'i2c':
+            self.add_extension(orangecart.pmod_i2c)
+            soc.submodules.i2c = I2CMaster(self.request("i2c"))
+        elif self.pmod == 'i2s':
+            self.add_extension(orangecart.pmod_i2s)
 
     def finalise(self, output_dir):
         input_config = os.path.join(output_dir, "gateware", f"{self.name}.config")
