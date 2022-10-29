@@ -77,7 +77,7 @@ class BaseSoC(SoCCore):
         SoCCore.__init__(self, platform, clk_freq, uart_name=uart_name,
                          cpu_reset_address=self.mem_map["bios_rom"],
                          integrated_sram_size=get_integrated_sram_size(),
-                         csr_data_width=32, **kwargs)
+                         csr_data_width=32, timer_uptime=True, **kwargs)
 
         if hasattr(self, "cpu") and not isinstance(self.cpu, CPUNone):
             platform.add_cpu_variant(self)

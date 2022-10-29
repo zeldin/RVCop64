@@ -9,9 +9,12 @@ LX_DEPENDENCIES = ["make", "meson", "riscv", "yosys", "nextpnr-ecp5"]
 import lxbuildenv
 
 import argparse
+import contextlib
+import json
 import os
 
 from litex.soc.integration.builder import Builder
+from litex.tools.litex_json2dts_zephyr import generate_dts_config, print_or_save
 
 from rtl.basesoc import BaseSoC
 
@@ -83,6 +86,7 @@ def main():
                   output_dir=output_dir)
     builder = Builder(soc, output_dir=output_dir,
                       csr_csv=os.path.join(output_dir, "csr.csv"),
+                      csr_json=os.path.join(output_dir, "csr.json"),
                       csr_svd=os.path.join(output_dir, "soc.svd"),
                       compile_software=True, compile_gateware=True)
     builder.add_software_package("exrom", os.path.join(sw_dir, "exrom"))
@@ -90,6 +94,12 @@ def main():
                       "seed": args.seed
                     } if args.toolchain == "trellis" else {}
     builder.build(**builder_kargs)
+    with open(os.path.join(output_dir, "csr.json")) as f:
+        csr_json = json.load(f)
+    with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+        dts, config = generate_dts_config(csr_json)
+    print_or_save(os.path.join(output_dir, "overlay.dts"), dts)
+    print_or_save(os.path.join(output_dir, "overlay.config"), config)
     platform.finalise(output_dir)
 
 
