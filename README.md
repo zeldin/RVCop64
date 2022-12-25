@@ -1,11 +1,15 @@
 RVCop64
 =======
 
-RVCop64 is a bitstream for [The Orange Cartridge][1] that implements a
+This is a fork of RVCop64 - a firmware for [The Orange Cartridge][1] - 
+that implements a
 RISC-V co-processor for the 6510/8502 processor in the C64/C128.  The
 RISC-V processor is based on [VexRiscv][2] and implements the RV32IM
-architecture.  Integration of peripherals such as external RAM, SD-card
+architecture. Integration of peripherals such as external RAM, SD-card
 and USB is done though the [LiteX][3] framework.
+
+This fork supports `rv32imafds` instructions if `--with-fpu` is selected - see below.
+Note that due to the FPGA limits, dual-core CPUs cannot be configured with FPU support.
 
 The bitstream includes an EXROM containing [BASIC extensions](doc/basic.md)
 and a [machine code monitor](doc/rvmon.md).
@@ -16,6 +20,8 @@ For debugging via USB, serial port or JTAG, please see the
 
 Building
 --------
+
+After cloning the repository, make sure you run `git submodule update --init --recursive` on the toplevel directory.
 
 To build the bitstream, go to the `hw` directory and run the python script
 `bitstream.py`:
@@ -88,6 +94,13 @@ Sets the baudrate for the serial port debug bridge enabled with
 Specifies a random seed for `nextpnr`.  In case routing fails, trying a
 different seed might help.  This should normally not be needed.
 
+Releases
+--------
+
+For your convenience there may appear some pre-built bitstreams under releases. Besides the bitstream itself, I may provide also the device tree specs in source `.dts` and binary `.dtb` formats. These may be useful to be used in conjunction with the RiscV Linux port - see here: https://github.com/litex-hub/linux-on-litex-vexriscv
+(Note: the Linux port was tested - as a principle PoC; due to OrangeCart's RAM limitations, Linux has to use the sdcard rootfs, making the whole system fairly slow. I successfully showed principle functioning of the OrangeCarts features, such as C64 memory access).
+
+*General Disclaimer: all materials here shall be used at ones own risk! The author may not be held responsible for any potential damage on your hardware and/or software equipment.*
 
 [1]: https://github.com/zeldin/OrangeCart.git
 [2]: https://github.com/SpinalHDL/VexRiscv
