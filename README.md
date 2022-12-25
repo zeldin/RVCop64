@@ -19,11 +19,14 @@ Building
 
 To build the bitstream, go to the `hw` directory and run the python script
 `bitstream.py`:
+Warning: there's some heavy dependencies to your build-environment, especially when rebuilding the CPU core is necessary.
 
+Example for building a single core CPU featuring FPU support with 80MHz frequency, with the console via USB:
 ```sh
 $ cd hw
-$ python3 bitstream.py --platform orangecart
+$ python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-wishbone-memory
 ```
+TODO: --with-wishbone-memory seems mandatory, should be made as default.
 
 If all goes well, the bitstream will be created as
 `build/gateware/orangecart.bit` under the `hw` directory.
