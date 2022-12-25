@@ -15,6 +15,7 @@ import os
 
 from litex.soc.integration.builder import Builder
 from litex.tools.litex_json2dts_zephyr import generate_dts_config, print_or_save
+from litex.soc.cores.cpu.vexriscv_smp import VexRiscvSMP
 
 from rtl.basesoc import BaseSoC
 
@@ -50,6 +51,7 @@ def main():
     parser.add_argument(
         "--seed", type=int, default=1, help="seed to use in nextpnr"
     )
+    VexRiscvSMP.args_fill(parser)
     args, _ = parser.parse_known_args()
 
     # Select platform based arguments
@@ -74,8 +76,10 @@ def main():
     output_dir = 'build'
     sw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../sw"))
 
-    cpu_type = "vexriscv"
-    cpu_variant = "standard+debug"
+    cpu_type = "vexriscv_smp"
+    #cpu_variant = "standard+debug"
+    cpu_variant = "linux"
+    VexRiscvSMP.args_read(args)
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
                   uart_name="stream" if args.uart is None else args.uart,
@@ -83,6 +87,7 @@ def main():
                   with_uartbone=args.serial_debug,
                   uartbone_baudrate=args.serial_debug_baudrate,
                   clk_freq=int(float(args.sys_clk_freq)),
+                  with_fpu=True,
                   output_dir=output_dir)
     builder = Builder(soc, output_dir=output_dir,
                       csr_csv=os.path.join(output_dir, "csr.csv"),

@@ -28,3 +28,6 @@
 [submodule "hw/deps/pythondata-software-picolibc"]
 	path = hw/deps/pythondata-software-picolibc
 	url = https://github.com/litex-hub/pythondata-software-picolibc.git
+[submodule "hw/deps/pythondata-cpu-vexriscv_smp"]
+	path = hw/deps/pythondata-cpu-vexriscv_smp
+	url = https://github.com/litex-hub/pythondata-cpu-vexriscv_smp.git

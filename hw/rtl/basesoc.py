@@ -35,8 +35,8 @@ class BaseSoC(SoCCore):
     csr_map = {
         "ctrl":           0,
         "crg":            1,
-        "uart":           2,
-        "timer0":         3,
+        #"uart":           2,
+        #"timer0":         3,
         "leds":           4,
         "spisdcard":      5,
         "hyperram":       6,
@@ -45,16 +45,16 @@ class BaseSoC(SoCCore):
     }
 
     interrupt_map = {
-        "uart":           0,
-        "timer0":         1,
+        #"uart":           0,
+        #"timer0":         1,
         "usb":            2,
     }
 
     SoCCore.mem_map = {
-        "c64":              0x00000000,
+        "c64":              0x0f000000,
         "sram":             0x10000000,
         "main_ram":         0x40000000,
-        "bios_rom":         0x70000000,
+        "bios_rom":         0x00000000,
         "csr":              0xf0000000,
         "vexriscv_debug":   0xf00f0000,
     }
@@ -74,6 +74,9 @@ class BaseSoC(SoCCore):
 
         get_integrated_sram_size=getattr(platform, "get_integrated_sram_size",
                                          lambda: 0)
+        for i in kwargs:
+            print("[", i, "]=", kwargs[i], ",")
+
         SoCCore.__init__(self, platform, clk_freq, uart_name=uart_name,
                          cpu_reset_address=self.mem_map["bios_rom"],
                          integrated_sram_size=get_integrated_sram_size(),

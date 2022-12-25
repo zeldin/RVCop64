@@ -70,7 +70,7 @@ class NCO(Module):
 
 class ClockRecovery(Module):
 
-    def __init__(self, phi2_in, phase_shift=10, guard_bits=4):
+    def __init__(self, phi2_in, phase_shift=15, guard_bits=4): # phase_shift=10 original
         self.phi2_out = Signal()
         self.phi2_out_lock = Signal()
         self.full = Record(_edge_layout)
