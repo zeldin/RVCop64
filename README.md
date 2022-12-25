@@ -97,8 +97,9 @@ different seed might help.  This should normally not be needed.
 Releases
 --------
 
-For your convenience there may appear some pre-built bitstreams under releases. Besides the bitstream itself, I may provide also the device tree specs in source `.dts` and binary `.dtb` formats. These may be useful to be used in conjunction with the RiscV Linux port - see here: https://github.com/litex-hub/linux-on-litex-vexriscv
-(Note: the Linux port was tested - as a principle PoC; due to OrangeCart's RAM limitations, Linux has to use the sdcard rootfs, making the whole system fairly slow. I successfully showed principle functioning of the OrangeCarts features, such as C64 memory access).
+For your convenience there may appear some pre-built bitstreams under releases. Besides the bitstream itself, I may provide also the device tree specs in source `.dts` and binary `.dtb` formats. These may be useful to be used in conjunction with the RiscV Linux port - see here: [Linux-on-LiteX-VexRiscv][5]
+
+Note: the Linux port was tested - as a principle PoC; due to OrangeCart's RAM limitations, Linux has to use the sdcard rootfs, making the whole system fairly slow. I successfully showed principle functioning of the OrangeCarts features, such as C64 memory accessV.
 
 *General Disclaimer: all materials here shall be used at ones own risk! The author may not be held responsible for any potential damage on your hardware and/or software equipment.*
 
@@ -106,3 +107,5 @@ For your convenience there may appear some pre-built bitstreams under releases. 
 [2]: https://github.com/SpinalHDL/VexRiscv
 [3]: https://github.com/enjoy-digital/litex
 [4]: https://github.com/enjoy-digital/litex/wiki/Use-Host-Bridge-to-control-debug-a-SoC
+[5]: https://github.com/litex-hub/linux-on-litex-vexriscv
+
