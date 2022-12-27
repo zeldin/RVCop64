@@ -101,6 +101,26 @@ For your convenience there may appear some pre-built bitstreams under releases. 
 
 Note: the Linux port was tested - as a principle PoC; due to OrangeCart's RAM limitations, Linux has to use the sdcard rootfs, making the whole system fairly slow. I successfully showed principle functioning of the OrangeCarts features, such as C64 memory access.
 
+Further information
+-------------------
+
+### Memory Layout
+To make this bitstream compatible with the used VexRiscV-SMP CPU, some memory mappings needed to be changed compared to the original RVCop64 layout:
+```
+litex> mem_list
+Available memory regions:
+OPENSBI   0x40f00000 0x80000 
+PLIC      0xf0c00000 0x400000 
+CLINT     0xf0010000 0x10000 
+SRAM      0x10000000 0x4000 
+MAIN_RAM  0x40000000 0x1000000 
+ROM       0x00000000 0xc000 
+C64       0x0f000000 0x10000 
+CSR       0xf0000000 0x10000 
+```
+Under Linux, in order to access C64 memory, one needs to `mmap(...)` the desired C64 memory region.
+Under Zephyr, the application program needs to take explicit care to access the right memory reagion. 
+
 *General Disclaimer: all materials here shall be used at ones own risk! The author may not be held responsible for any potential damage on your hardware and/or software equipment.*
 
 [1]: https://github.com/zeldin/OrangeCart.git
