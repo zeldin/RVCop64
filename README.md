@@ -99,6 +99,16 @@ Releases
 
 For your convenience there may appear some pre-built bitstreams under releases. Besides the bitstream itself, I may provide also the device tree specs in source `.dts` and binary `.dtb` formats. These may be useful to be used in conjunction with the RiscV Linux port - see here: [Linux-on-LiteX-VexRiscv][5]
 
+The bitstreams where built using the commands:
+
+| Bitstream               | Command |
+|-------------------------|---------|
+| RVCop64-fbsc-v1.0.bit    | `python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-wishbone-memory`|
+| RVCop64-dc-v1.0.bit    | `python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=2 --with-wishbone-memory`|
+
+To access the Litex console you may use `litex_term /dev/ttyACM0` or its variants to get some software running (e.g. use the option `--kernel=my-prog.bin`).
+To get the full C64 experience you may remove the `--uart=usb_acm` option to get the `rvterm` console on the C64. Checkout the other options related to connectivity [here][6].
+
 Note: the Linux port was tested - as a principle PoC; due to OrangeCart's RAM limitations, Linux has to use the sdcard rootfs, making the whole system fairly slow. I successfully showed principle functioning of the OrangeCarts features, such as C64 memory access.
 
 Further information
@@ -128,4 +138,5 @@ Under Zephyr, the application program needs to take explicit care to access the 
 [3]: https://github.com/enjoy-digital/litex
 [4]: https://github.com/enjoy-digital/litex/wiki/Use-Host-Bridge-to-control-debug-a-SoC
 [5]: https://github.com/litex-hub/linux-on-litex-vexriscv
+[6]: https://github.com/zeldin/RVCop64/blob/master/doc/debugging.md
 
