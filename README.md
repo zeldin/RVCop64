@@ -99,7 +99,7 @@ Releases
 
 For your convenience there may appear some pre-built bitstreams under releases. Besides the bitstream itself, I may provide also the device tree specs in source `.dts` and binary `.dtb` formats. These may be useful to be used in conjunction with the RiscV Linux port - see here: [Linux-on-LiteX-VexRiscv][5]
 
-The bitstreams where built using the commands:
+The bitstreams were built using the commands:
 
 | Bitstream               | Command |
 |-------------------------|---------|
