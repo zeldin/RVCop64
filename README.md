@@ -103,15 +103,18 @@ Releases
 
 For your convenience there may appear some pre-built bitstreams under releases. Besides the bitstream itself, I may provide also the device tree specs in source `.dts` and binary `.dtb` formats. These may be useful to be used in conjunction with the RiscV Linux port - see here: [Linux-on-LiteX-VexRiscv][5]
 
-The bitstreams were built using the commands:
+The bitstreams in detail
 
 | Bitstream               | Command |
 |-------------------------|---------|
-| RVCop64-fbsc-v1.0.bit    | `python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-wishbone-memory`|
-| RVCop64-dc-v1.0.bit    | `python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=2 --with-wishbone-memory`|
+| RVCop64-rv32ima.tar.gz | 64MHz, C64 RVTerm, Single-core, ISA - I/A/M |
+| RVCop64-rv32i2p0_mafdc.tar.gz | 80MHz, C64 RVTerm, Single-core, ISA - I/A/M/C/F/D |
+| RVCop64-usb_acm-rv32ima.tar.gz | 80MHz,  USB ACM Terminal, Single-core, ISA - I/A/M |
+| RVCop64-usb_acm-rv32i2p0_mac.tar.gz | 80MHz,  USB ACM Terminal, Dual-core, ISA - I/A/M/C |
+| RVCop64-usb_acm-rv32i2p0_mafdc.tar.gz | 80MHz,  USB ACM Terminal, Single-core, ISA - I/A/M/C/F/D |
 
-To access the Litex console you may use `litex_term /dev/ttyACM0` or its variants to get some software running (e.g. use the option `--kernel=my-prog.bin`).
-To get the full C64 experience you may remove the `--uart=usb_acm` option to get the `rvterm` console on the C64. Checkout the other options related to connectivity [here][6].
+To access the Litex console you may use `litex_term /dev/ttyACM0` or its variants to get some software running (e.g. use the option `--kernel=my-prog.bin`) for USB ACM Terminal supported bitstreams.
+Checkout the other options related to connectivity [here][6].
 
 Note: the Linux port was tested - as a principle PoC; due to OrangeCart's RAM limitations, Linux has to use the sdcard rootfs, making the whole system fairly slow. I successfully showed principle functioning of the OrangeCarts features, such as C64 memory access.
 
