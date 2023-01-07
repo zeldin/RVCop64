@@ -32,6 +32,8 @@ class SoCIORegisters(IORegisters):
 
 class BaseSoC(SoCCore):
 
+    # these maps are vexriscv_smp as defined here, corrected for 
+    # vexriscv later in the constructor
     csr_map = {
         "ctrl":           0,
         "crg":            1,
@@ -69,13 +71,26 @@ class BaseSoC(SoCCore):
 
         self.output_dir = output_dir
 
+        # complement maps, in vexriscv_smp this is done by the cpu core
+        if kwargs['cpu_type'] == "vexriscv":
+            self.interrupt_map["uart"] = 0
+            self.interrupt_map["timer0"] = 1
+            self.csr_map["uart"] = 2
+            self.csr_map["timer0"] = 3
+            SoCCore.mem_map = {
+                "c64":              0x00000000,
+                "sram":             0x10000000,
+                "main_ram":         0x40000000,
+                "bios_rom":         0x70000000,
+                "csr":              0xf0000000,
+                "vexriscv_debug":   0xf00f0000,
+            }
+            
         platform.add_crg(self, clk_freq,
                          uart_name=='usb_acm' or usb is not None)
 
         get_integrated_sram_size=getattr(platform, "get_integrated_sram_size",
                                          lambda: 0)
-        for i in kwargs:
-            print("[", i, "]=", kwargs[i], ",")
 
         SoCCore.__init__(self, platform, clk_freq, uart_name=uart_name,
                          cpu_reset_address=self.mem_map["bios_rom"],

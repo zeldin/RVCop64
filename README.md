@@ -8,7 +8,7 @@ RISC-V processor is based on [VexRiscv][2] and implements the RV32IM
 architecture. Integration of peripherals such as external RAM, SD-card
 and USB is done though the [LiteX][3] framework.
 
-This fork supports `rv32imafds` instructions if `--with-fpu` is selected - see below.
+This fork supports `rv32imacfds` instructions if `--with-fpu --with-rvc` is selected - see below.
 Note that due to the FPGA limits, dual-core CPUs cannot be configured with FPU support.
 
 The bitstream includes an EXROM containing [BASIC extensions](doc/basic.md)
@@ -30,7 +30,7 @@ Warning: there's some heavy dependencies to your build-environment, especially w
 Example for building a single core CPU featuring FPU support with 80MHz frequency, with the console via USB:
 ```sh
 $ cd hw
-$ python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-wishbone-memory
+$ python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-rvc --with-wishbone-memory
 ```
 TODO: --with-wishbone-memory seems mandatory, should be made as default.
 
@@ -46,6 +46,10 @@ script:
 
 Specifies the hardware platform to target.  This is a mandatory argument.
 Currently only the value `orangecart` is valid.
+
+> --cpu {vexriscv,vexriscv_smp}
+
+Specifies which CPU core to choose. `vexriscv` is the *original* one, lightweigt. `vexriscv_smp` features more options, including several Riscv ISAs: ISA F/D/C in addition and SMP support. Checkout all options using `--help`.
 
 > --sys-clk-freq _SYS_CLK_FREQ_
 

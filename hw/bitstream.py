@@ -12,6 +12,7 @@ import argparse
 import contextlib
 import json
 import os
+import sys
 
 from litex.soc.integration.builder import Builder
 from litex.tools.litex_json2dts_zephyr import generate_dts_config, print_or_save
@@ -26,6 +27,10 @@ def main():
     parser.add_argument(
         "--platform", choices=["orangecart"], required=True,
         help="build for a particular hardware"
+    )
+    cpu = parser.add_argument(
+        "--cpu", default="vexriscv", choices=["vexriscv", "vexriscv_smp"], 
+        help="Choose one of the supported VexRiscV CPUs"
     )
     parser.add_argument(
         "--sys-clk-freq", default=64e6,
@@ -51,12 +56,14 @@ def main():
     parser.add_argument(
         "--seed", type=int, default=1, help="seed to use in nextpnr"
     )
-    VexRiscvSMP.args_fill(parser)
     args, _ = parser.parse_known_args()
 
     # Select platform based arguments
     if args.platform == "orangecart":
         from rtl.platform.orangecart import Platform, add_platform_args, platform_argdict
+
+    if args.cpu == "vexriscv_smp":
+        VexRiscvSMP.args_fill(parser)
 
     # Add any platform dependent args
     add_platform_args(parser)
@@ -76,10 +83,20 @@ def main():
     output_dir = 'build'
     sw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../sw"))
 
-    cpu_type = "vexriscv_smp"
-    #cpu_variant = "standard+debug"
-    cpu_variant = "linux"
-    VexRiscvSMP.args_read(args)
+    if args.cpu == "vexriscv_smp":
+        cpu_type = "vexriscv_smp"
+        cpu_variant = "linux"
+        VexRiscvSMP.args_read(args)
+    else:
+        cpu_type = "vexriscv"
+        cpu_variant = "standard+debug"
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    f = open(os.path.join(output_dir, "build-commandline.log"), "w")
+    for arg in enumerate(sys.argv):
+        f.write(str(arg[1]) + " ")
+    f.write("\n")
+    f.close()
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
                   uart_name="stream" if args.uart is None else args.uart,
@@ -87,7 +104,6 @@ def main():
                   with_uartbone=args.serial_debug,
                   uartbone_baudrate=args.serial_debug_baudrate,
                   clk_freq=int(float(args.sys_clk_freq)),
-                  with_fpu=True,
                   output_dir=output_dir)
     builder = Builder(soc, output_dir=output_dir,
                       csr_csv=os.path.join(output_dir, "csr.csv"),
