@@ -105,7 +105,7 @@ For your convenience there may appear some pre-built bitstreams under releases. 
 
 The bitstreams in detail
 
-| Bitstream               | Command |
+| Bitstream               | Description |
 |-------------------------|---------|
 | RVCop64-rv32ima.tar.gz | 64MHz, C64 RVTerm, Single-core, ISA - I/A/M |
 | RVCop64-rv32i2p0_mafdc.tar.gz | 80MHz, C64 RVTerm, Single-core, ISA - I/A/M/C/F/D |
