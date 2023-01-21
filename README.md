@@ -57,6 +57,14 @@ it to the JTAG, for use with `litex_term jtag`.  Specifying `crossover`
 connects it to a virtual UART accessible through [`litex_server`][4]
 (please also enable one or more debug ports).
 
+> --uart2 {vuart,serial,usb_acm,jtag_uart,crossover}
+
+Adds a second built-in serial port to the RISC-V processor.  It offers the
+same set of connections as the primary serial port, but the two ports must
+not use the same connection.  By default no secondary serial port is added;
+explicitly specify `vuart` to get a second serial port connected to the
+virtual UART connected to `rvterm`.
+
 > --usb {eptri,simplehostusb,debug}
 
 Adds custom USB functionality.  This argument can not be used together

@@ -42,12 +42,14 @@ class BaseSoC(SoCCore):
         "hyperram":       6,
         "usb":            7,
         "i2c":            8,
+        "uart2":          9,
     }
 
     interrupt_map = {
         "uart":           0,
         "timer0":         1,
         "usb":            2,
+        "uart2":          3,
     }
 
     SoCCore.mem_map = {
@@ -62,7 +64,7 @@ class BaseSoC(SoCCore):
     def __init__(self, platform,
                  output_dir="build",
                  clk_freq=int(64e6),
-                 uart_name="stream",
+                 uart_name="stream", uart2_name=None,
                  usb=None, with_jtagbone=False,
                  with_uartbone=False, uartbone_baudrate=115200,
                  **kwargs):
@@ -70,7 +72,8 @@ class BaseSoC(SoCCore):
         self.output_dir = output_dir
 
         platform.add_crg(self, clk_freq,
-                         uart_name=='usb_acm' or usb is not None)
+                         uart_name=='usb_acm' or uart2_name=='usb_acm' or
+                         usb is not None)
 
         get_integrated_sram_size=getattr(platform, "get_integrated_sram_size",
                                          lambda: 0)
@@ -78,6 +81,9 @@ class BaseSoC(SoCCore):
                          cpu_reset_address=self.mem_map["bios_rom"],
                          integrated_sram_size=get_integrated_sram_size(),
                          csr_data_width=32, timer_uptime=True, **kwargs)
+
+        if uart2_name:
+            self.add_uart("uart2", uart_name=uart2_name)
 
         if hasattr(self, "cpu") and not isinstance(self.cpu, CPUNone):
             platform.add_cpu_variant(self)
@@ -127,6 +133,9 @@ class BaseSoC(SoCCore):
         if uart_name == "stream":
             self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
             self.comb += self.uart.source.connect(self.ioregs.vuart0.sink)
+        elif uart2_name == "stream":
+            self.comb += self.ioregs.vuart0.source.connect(self.uart2.sink)
+            self.comb += self.uart2.source.connect(self.ioregs.vuart0.sink)
         # Connect WBMaster
         self.bus.add_master(name="c64wbmaster", master=self.ioregs.wbmaster.wishbone)
         # Debug

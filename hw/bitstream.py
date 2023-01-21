@@ -34,6 +34,10 @@ def main():
         "--uart", default=None, choices=["serial", "usb_acm", "jtag_uart", "crossover"],
         help="Connect main UART to pins or USB or JTAG, instead of to VUART"
     )
+    uart2_action = parser.add_argument(
+        "--uart2", default=None, choices=["vuart", "serial", "usb_acm", "jtag_uart", "crossover"],
+        help="Create a second UART connected to VUART, pins, USB or JTAG"
+    )
     parser.add_argument(
         "--usb", default=None, choices=["eptri", "simplehostusb", "debug"],
         help="Include USB functionality"
@@ -67,6 +71,14 @@ def main():
         parser.error(str(argparse.ArgumentError(uart_action, "invalid choice: 'jtag_uart' can not be used together with --jtag-debug")))
     if args.uart == "serial" and args.serial_debug:
         parser.error(str(argparse.ArgumentError(uart_action, "invalid choice: 'serial' can not be used together with --serial-debug")))
+    if args.uart2 == (args.uart or "vuart"):
+        parser.error(str(argparse.ArgumentError(uart2_action, "invalid choice: can't use same connection as --uart")))
+    if args.uart2 == "usb_acm" and args.usb is not None:
+        parser.error(str(argparse.ArgumentError(uart2_action, "invalid choice: 'usb_acm' can not be used together with --usb")))
+    if args.uart2 == "jtag_uart" and args.jtag_debug:
+        parser.error(str(argparse.ArgumentError(uart2_action, "invalid choice: 'jtag_uart' can not be used together with --jtag-debug")))
+    if args.uart2 == "serial" and args.serial_debug:
+        parser.error(str(argparse.ArgumentError(uart2_action, "invalid choice: 'serial' can not be used together with --serial-debug")))
 
     # load our platform file
     platform = Platform(**platform_argdict(args))
@@ -79,6 +91,7 @@ def main():
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
                   uart_name="stream" if args.uart is None else args.uart,
+                  uart2_name="stream" if args.uart == "vuart" else args.uart2,
                   usb=args.usb, with_jtagbone=args.jtag_debug,
                   with_uartbone=args.serial_debug,
                   uartbone_baudrate=args.serial_debug_baudrate,
