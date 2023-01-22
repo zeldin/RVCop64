@@ -30,9 +30,9 @@ Warning: there's some heavy dependencies to your build-environment, especially w
 Example for building a single core CPU featuring FPU support with 80MHz frequency, with the console via USB:
 ```sh
 $ cd hw
-$ python3 bitstream.py --platform=orangecart --uart=usb_acm --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-rvc --with-wishbone-memory
+$ python3 bitstream.py --platform=orangecart --uart=usb_acm --cpu=vexriscv_smp --sys-clk-freq=80e6 --cpu-count=1 --with-fpu --with-rvc
 ```
-TODO: --with-wishbone-memory seems mandatory, should be made as default.
+Note that `--with-wishbone-memory` is silently passed to the vexriscv_smp cpu-specific options, as this is needed to get a working bitstream for this board based on the SMP CPU.
 
 If all goes well, the bitstream will be created as
 `build/gateware/orangecart.bit` under the `hw` directory.
@@ -113,12 +113,12 @@ For your convenience there may appear some pre-built bitstreams under releases. 
 
 The bitstreams in detail
 
-| Bitstream               | Description |
-|-------------------------|---------|
-| RVCop64-rv32ima.tar.gz | 64MHz, C64 RVTerm, Single-core, ISA - I/A/M |
-| RVCop64-rv32i2p0_mafdc.tar.gz | 80MHz, C64 RVTerm, Single-core, ISA - I/A/M/C/F/D |
-| RVCop64-usb_acm-rv32ima.tar.gz | 80MHz,  USB ACM Terminal, Single-core, ISA - I/A/M |
-| RVCop64-usb_acm-rv32i2p0_mac.tar.gz | 80MHz,  USB ACM Terminal, Dual-core, ISA - I/A/M/C |
+| Bitstream                             | Description                                              |
+| ------------------------------------- | -------------------------------------------------------- |
+| RVCop64-rv32ima.tar.gz                | 64MHz, C64 RVTerm, Single-core, ISA - I/A/M              |
+| RVCop64-rv32i2p0_mafdc.tar.gz         | 80MHz, C64 RVTerm, Single-core, ISA - I/A/M/C/F/D        |
+| RVCop64-usb_acm-rv32ima.tar.gz        | 80MHz,  USB ACM Terminal, Single-core, ISA - I/A/M       |
+| RVCop64-usb_acm-rv32i2p0_mac.tar.gz   | 80MHz,  USB ACM Terminal, Dual-core, ISA - I/A/M/C       |
 | RVCop64-usb_acm-rv32i2p0_mafdc.tar.gz | 80MHz,  USB ACM Terminal, Single-core, ISA - I/A/M/C/F/D |
 
 To access the Litex console you may use `litex_term /dev/ttyACM0` or its variants to get some software running (e.g. use the option `--kernel=my-prog.bin`) for USB ACM Terminal supported bitstreams.

@@ -98,6 +98,8 @@ def main():
     if args.cpu == "vexriscv_smp":
         cpu_type = "vexriscv_smp"
         cpu_variant = "linux"
+        # hardwire wishbone memory - otherwise OC won't boot into BIOS
+        args.with_wishbone_memory = True
         VexRiscvSMP.args_read(args)
     else:
         cpu_type = "vexriscv"
