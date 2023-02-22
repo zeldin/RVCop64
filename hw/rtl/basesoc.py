@@ -51,7 +51,7 @@ class BaseSoC(SoCCore):
         #"uart":           0,
         #"timer0":         1,
         "usb":            2,
-        "uart2":          3,
+        "uart2":          4,
     }
 
     SoCCore.mem_map = {
