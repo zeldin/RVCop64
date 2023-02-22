@@ -13,11 +13,19 @@ isa=`grep CPU_ISA build/software/include/generated/soc.h |awk '{print $3}'|sed '
 if [ x${isa} = x"" ] ; then
     isa="rv32ima"
 fi
+
+# distinguis rootfs-partion: 3 = no fpu binaries, 2 = fpu binaries
+if [ x${isa}x = "xrv32i2p0_macx" ] ; then
+    rootfspart="3"
+else
+    rootfspart="2"
+fi
+
 name=RVCop64${uart}${usb}-${isa}
 echo "Name=${name}"
 
 if [ x${cpu} != x"-bitstream.py" ] ; then
-    deps/litex/litex/tools/litex_json2dts_linux.py --root-device mmcblk0p2 build/csr.json > build/${name}.dts
+    deps/litex/litex/tools/litex_json2dts_linux.py --root-device mmcblk0p${rootfspart} build/csr.json > build/${name}.dts
     dtc build/${name}.dts > build/${name}.dtb
 fi
 cp build/gateware/orangecart.bit build/${name}.bit
