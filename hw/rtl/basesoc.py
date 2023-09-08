@@ -13,6 +13,7 @@ from .vuart import VUART
 from .wbmaster import WBMaster
 from .vexriscvdebug import VexRiscvDebug
 from .ledpwm import LEDPWM
+from .modesnooper import ModeSnooper
 
 
 class SoCIORegisters(IORegisters):
@@ -104,13 +105,17 @@ class BaseSoC(SoCCore):
         self.submodules.bus_manager = BusManager(
             platform.request("c64expansionport"),
             platform.request("clockport", loose=True))
+        self.submodules.mode_snooper = ModeSnooper(
+            self.bus_manager.reset_control.reset_in,
+            self.bus_manager.snoop_endpoint)
+
         # ROML
         self.exrom = Memory(8, 8192)
         self.specials += self.exrom
         rdport = self.exrom.get_port()
         self.specials += rdport
         self.comb += [
-            self.bus_manager.exrom.eq(1),
+            self.bus_manager.exrom.eq(self.mode_snooper.c64_mode),
             self.bus_manager.romdata.eq(rdport.dat_r),
             rdport.adr.eq(self.bus_manager.a[:13])
         ]

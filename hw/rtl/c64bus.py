@@ -14,6 +14,12 @@ dma_description = [
     ("rdata",  8, DIR_S_TO_M),
 ]
 
+snoop_description = [
+    ("we",     1, DIR_M_TO_S),
+    ("addr",  16, DIR_M_TO_S),
+    ("data",   8, DIR_M_TO_S),
+    ("dma",    1, DIR_M_TO_S),
+]
 
 class BusManager(Module):
     def _export_signal(self, pads, value, *names):
@@ -220,6 +226,9 @@ class BusManager(Module):
         self.dma_endpoint = Endpoint(dma_description)
         self.dma_alloc = Signal()
 
+        self.snoop_endpoint = Endpoint(snoop_description)
+        self.comb += [ self.snoop_endpoint.dma.eq(dma) ]
+
         dma_dummy_cycle = Signal()
         dma_delay = Signal(4)
         self.submodules.fsm = fsm = FSM(reset_state="RESET")
@@ -233,12 +242,18 @@ class BusManager(Module):
                 NextValue(rw_out_dma, 1),
                 NextValue(dma, 0),
                 NextValue(dma_dummy_cycle, 0),
-                If(self.clock_recovery.phi2_out,
+                If(self.clock_recovery.half.p1,
                    NextState("WAIT_PHASE0")))
 
         fsm.act("WAIT_PHASE0",
                 If(~self.clock_recovery.phi2_out,
-                   NextState("PHASE0_00")))
+                   self.snoop_endpoint.valid.eq(~cpu_stopped_by_ba),
+                   NextState("PHASE0_00")
+                ).Elif(self.clock_recovery.full.m2,
+                   NextValue(self.snoop_endpoint.addr, a_d),
+                   NextValue(self.snoop_endpoint.data, d_d),
+                   NextValue(self.snoop_endpoint.we, ~rw_in),
+                   NextValue(d_en_dma, 0)))
 
         fsm.act("PHASE0_00",
                 If((rw_in == 0b0) & (a_d == 0xff00),
@@ -291,6 +306,7 @@ class BusManager(Module):
                    NextValue(a_en_dma, 0),
                    NextState("PHASE1_01")
                 ).Else(
+                   NextValue(d_en_dma, 1),
                    NextState("WAIT_PHASE0")
                 ))
 
@@ -326,10 +342,15 @@ class BusManager(Module):
 
         fsm.act("WAIT_PHASE0_DMA",
                 If(self.clock_recovery.phi2_out,
-                   NextValue(self.dma_endpoint.rdata, d_d)
+                   NextValue(self.dma_endpoint.rdata, d_d),
+                   If(self.clock_recovery.full.m2,
+                      NextValue(self.snoop_endpoint.addr, a_d),
+                      NextValue(self.snoop_endpoint.data, d_d),
+                      NextValue(self.snoop_endpoint.we, ~rw_in))
                 ).Else(
                    If(~dma_dummy_cycle,
                       self.dma_endpoint.ready.eq(1)),
+                   self.snoop_endpoint.valid.eq(1),
                    NextState("PHASE0_00")
                 ))
 
