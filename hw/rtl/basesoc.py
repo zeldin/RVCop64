@@ -3,7 +3,7 @@ import os
 from litex.soc.cores.cpu import CPUNone
 from litex.soc.integration.soc_core import SoCCore, SoCRegion
 from litex.soc.interconnect import wishbone
-from migen import Memory
+from migen import Cat, Memory, Mux
 from valentyusb.usbcore import io as usbio
 from valentyusb.usbcore.cpu import eptri, simplehostusb, dummyusb
 
@@ -110,14 +110,14 @@ class BaseSoC(SoCCore):
             self.bus_manager.snoop_endpoint)
 
         # ROML
-        self.exrom = Memory(8, 8192)
+        self.exrom = Memory(8, 16384)
         self.specials += self.exrom
         rdport = self.exrom.get_port()
         self.specials += rdport
         self.comb += [
             self.bus_manager.exrom.eq(self.mode_snooper.c64_mode),
-            self.bus_manager.romdata.eq(rdport.dat_r),
-            rdport.adr.eq(self.bus_manager.a[:13])
+            self.bus_manager.romdata.eq(Mux(self.bus_manager.a[13:] == 0b100, rdport.dat_r, 0xff)),
+            rdport.adr.eq(Cat(self.bus_manager.a[:13], self.mode_snooper.c128_mode))
         ]
         # IO1/2
         self.submodules.ioregs = SoCIORegisters()
@@ -191,5 +191,9 @@ class BaseSoC(SoCCore):
         with open(os.path.join(self.output_dir,
                                "software/exrom/rom.bin"), "rb") as f:
             self.exrom.init = f.read()
+        with open(os.path.join(self.output_dir,
+                               "software/funcrom/rom.bin"), "rb") as f:
+            self.exrom.init = self.exrom.init.ljust(8192, b'\0')[:8192]
+            self.exrom.init += f.read()
         return SoCCore.build(self, *args, **kwargs)
 

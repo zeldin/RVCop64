@@ -103,6 +103,7 @@ def main():
                       csr_svd=os.path.join(output_dir, "soc.svd"),
                       compile_software=True, compile_gateware=True)
     builder.add_software_package("exrom", os.path.join(sw_dir, "exrom"))
+    builder.add_software_package("funcrom", os.path.join(sw_dir, "funcrom"))
     builder_kargs = { "abc9": True,
                       "seed": args.seed
                     } if args.toolchain == "trellis" else {}
