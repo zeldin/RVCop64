@@ -119,6 +119,11 @@ class BusManager(Module):
         self.game = Signal()
         self._export_signal(expport, self.game, "game")
 
+        # IRQ
+
+        self.irq_out = Signal()
+        self._export_signal(expport, self.irq_out, "irq_out")
+
         # Bus direction setup
 
         io12_filter = Signal(8)

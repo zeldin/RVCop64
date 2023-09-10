@@ -12,6 +12,7 @@ from .ioregisters import IORegisters
 from .vuart import VUART
 from .wbmaster import WBMaster
 from .vexriscvdebug import VexRiscvDebug
+from .mailbox import Mailbox
 from .ledpwm import LEDPWM
 from .modesnooper import ModeSnooper
 
@@ -21,13 +22,15 @@ class SoCIORegisters(IORegisters):
     csr_map = {
         "vuart0" : 0xde10,
         "wbmaster" : 0xde20,
-        "vexriscv_debug" : 0xde30
+        "vexriscv_debug" : 0xde30,
+        "mailbox" : 0xdec0
     }
 
     def __init__(self):
         self.submodules.vuart0 = VUART(rx_fifo_depth = 1024)
         self.submodules.wbmaster = WBMaster()
         self.submodules.vexriscv_debug = VexRiscvDebug()
+        self.submodules.mailbox = Mailbox(64)
         IORegisters.__init__(self)
 
 
@@ -51,6 +54,7 @@ class BaseSoC(SoCCore):
         "timer0":         1,
         "usb":            2,
         "uart2":          3,
+        "mailbox":        4,
     }
 
     SoCCore.mem_map = {
@@ -58,6 +62,7 @@ class BaseSoC(SoCCore):
         "sram":             0x10000000,
         "main_ram":         0x40000000,
         "bios_rom":         0x70000000,
+        "mailbox":          0xe0000000,
         "csr":              0xf0000000,
         "vexriscv_debug":   0xf00f0000,
     }
@@ -143,6 +148,19 @@ class BaseSoC(SoCCore):
             self.comb += self.uart2.source.connect(self.ioregs.vuart0.sink)
         # Connect WBMaster
         self.bus.add_master(name="c64wbmaster", master=self.ioregs.wbmaster.wishbone)
+        # Connect Mailbox
+        self.mailbox = self.ioregs.mailbox
+        mailbox_region = SoCRegion(origin=self.mem_map.get("mailbox"),
+                                   size=self.mailbox.size,
+                                   cached=False)
+        self.bus.add_region("mailbox", mailbox_region)
+        self.bus.add_slave("mailbox", self.mailbox.wb)
+        if self.irq.enabled:
+            self.irq.add("mailbox", use_loc_if_exists=True)
+        self.comb += [
+            self.bus_manager.irq_out.eq(self.mailbox.irq),
+            self.mailbox.irq_ext_clear.eq(self.bus_manager.reset_control.reset_in)
+        ]
         # Debug
         self.bus.regions.pop("vexriscv_debug", None)
         debug_slave = self.bus.slaves.pop("vexriscv_debug", None)
