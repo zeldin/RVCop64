@@ -1,20 +1,21 @@
-from migen import If, Module, Signal
-from migen.genlib.record import DIR_M_TO_S, DIR_S_TO_M, Record
+from migen import C, If, Module, Signal
+from migen.genlib.record import DIR_M_TO_S, DIR_S_TO_M, Record, set_layout_parameters
 from migen.util.misc import xdir
 
 from litex.soc.interconnect.csr import GenericBank
 
 _layout = [
-    ("adr",      9, DIR_M_TO_S),
-    ("w_strobe", 1, DIR_M_TO_S),
-    ("r_strobe", 1, DIR_M_TO_S),
-    ("dat_w",    8, DIR_M_TO_S),
-    ("dat_r",    8, DIR_S_TO_M)
+    ("adr",  "adr_width", DIR_M_TO_S),
+    ("w_strobe",       1, DIR_M_TO_S),
+    ("r_strobe",       1, DIR_M_TO_S),
+    ("dat_w",          8, DIR_M_TO_S),
+    ("dat_r",          8, DIR_S_TO_M)
 ]
 
 class Interface(Record):
-    def __init__(self):
-        Record.__init__(self, _layout)
+    def __init__(self, addrbits=9):
+        Record.__init__(self, set_layout_parameters(_layout,
+                                                    adr_width=addrbits))
         self.adr.reset_less = True
         self.dat_w.reset_less = True
         self.dat_r.reset_less = True
@@ -57,6 +58,25 @@ class IORegisters(Module):
     def scan(self, source):
         brcases = {}
         for name, obj in xdir(source, True):
+            if hasattr(obj, "get_bus"):
+                bus = obj.get_bus()
+                if bus:
+                    width = len(bus.adr)
+                    mapaddr = self.address_map(name, None)
+                    if mapaddr is None:
+                        continue
+                    sel = Signal()
+                    self.comb += [
+                        sel.eq(self.bus.adr[width:] ==
+                               C(mapaddr, len(self.bus.adr))[width:]),
+                        bus.adr.eq(self.bus.adr[:width]),
+                        bus.w_strobe.eq(self.bus.w_strobe & sel),
+                        bus.r_strobe.eq(self.bus.r_strobe & sel),
+                        bus.dat_w.eq(self.bus.dat_w)
+                    ]
+                    self.sync += If(sel & self.bus.r_strobe,
+                                    self.bus.dat_r.eq(bus.dat_r))
+                    continue
             if not hasattr(obj, "get_csrs"):
                 continue
             csrs = obj.get_csrs()

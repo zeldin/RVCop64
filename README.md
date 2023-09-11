@@ -14,6 +14,10 @@ Note that due to the FPGA limits, dual-core CPUs cannot be configured with FPU s
 The bitstream includes an EXROM containing [BASIC extensions](doc/basic.md)
 and a [machine code monitor](doc/rvmon.md).
 
+For machine code programmers, there are some extra
+[I/O registers](doc/ioregs.md) provided for communication between the
+6510/8502 and the RISC-V co-processor.
+
 For debugging via USB, serial port or JTAG, please see the
 [debugging](doc/debugging.md) documentation.
 
