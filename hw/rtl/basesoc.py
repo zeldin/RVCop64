@@ -55,15 +55,15 @@ class BaseSoC(SoCCore):
         #"uart":           0,
         #"timer0":         1,
         "usb":            2,
-        "uart2":          3,
-        "mailbox":        4,
+        "uart2":          4,
+        "mailbox":        5,
     }
 
     SoCCore.mem_map = {
         "c64":              0x0f000000,
         "sram":             0x10000000,
         "main_ram":         0x40000000,
-        "bios_rom":         0x70000000,
+        "bios_rom":         0x00000000,
         "mailbox":          0xe0000000,
         "csr":              0xf0000000,
         "vexriscv_debug":   0xf00f0000,
