@@ -1,3 +1,4 @@
 __pycache__/
 hw/build/
 hw/*.tar.gz
+hw/deps/pythondata-cpu-vexriscv_smp
