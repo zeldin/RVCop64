@@ -64,7 +64,7 @@ class BaseSoC(SoCCore):
         "sram":             0x10000000,
         "main_ram":         0x40000000,
         "bios_rom":         0x00000000,
-        "mailbox":          0xe0000000,
+        "mailbox":          0x80000000,
         "csr":              0xf0000000,
         "vexriscv_debug":   0xf00f0000,
     }
@@ -79,10 +79,12 @@ class BaseSoC(SoCCore):
 
         self.output_dir = output_dir
 
-        # complement maps, in vexriscv_smp this is done by the cpu core
+        # complement/correct maps, in vexriscv_smp this is done by the cpu core
         if kwargs['cpu_type'] == "vexriscv":
             self.interrupt_map["uart"] = 0
             self.interrupt_map["timer0"] = 1
+            self.interrupt_map["uart2"] = 3
+            self.interrupt_map["mailbox"] = 4
             self.csr_map["uart"] = 2
             self.csr_map["timer0"] = 3
             SoCCore.mem_map = {
@@ -90,6 +92,7 @@ class BaseSoC(SoCCore):
                 "sram":             0x10000000,
                 "main_ram":         0x40000000,
                 "bios_rom":         0x70000000,
+                "mailbox":          0xe0000000,
                 "csr":              0xf0000000,
                 "vexriscv_debug":   0xf00f0000,
             }
