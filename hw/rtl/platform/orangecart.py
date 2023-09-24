@@ -21,6 +21,8 @@ available_hyperram_modules = {
 }
 
 def add_platform_args(parser):
+    parser.add_argument("--revision", default="1.0", choices=["1.0", "1.2"],
+                        help="Board Revision (default=1.0)")
     parser.add_argument(
         "--device", choices=["25F", "45F", "85F"], default="25F",
         help="Select device density"
@@ -33,27 +35,33 @@ def add_platform_args(parser):
         "--pmod", default=None, choices=["spi", "serial", "i2c", "i2s"]
     )
     parser.add_argument(
+        "--pmod2", default=None, choices=["gpio", "xgpio", "spi", "xspi"]
+    )
+    parser.add_argument(
         "--toolchain", default="trellis",
         help="Gateware toolchain to use, trellis (default) or diamond"
     )
 
 def platform_argdict(args):
     return {
+        "revision":         args.revision,
         "device":           args.device,
         "hyperram_device":  args.hyperram_device,
         "pmod":             args.pmod,
+        "pmod2":            args.pmod2,
         "toolchain":        args.toolchain,
     }
 
 
 class Platform(orangecart.Platform):
-    def __init__(self, revision=None, device="25F", hyperram_device="S70KS1281DP", pmod=None, toolchain="trellis"):
+    def __init__(self, revision="1.0", device="25F", hyperram_device="S70KS1281DP", pmod=None, pmod2=None, toolchain="trellis"):
         self.revision = revision
         self.device = device
         self.hw_platform = "orangecart"
         self.hyperram_device = hyperram_device
         self.hyperram_module = available_hyperram_modules.get(hyperram_device)
         self.pmod = pmod
+        self.pmod2 = pmod2
         orangecart.Platform.__init__(self, device=device, revision=revision, toolchain=toolchain)
 
     def add_crg(self, soc, sys_clk_freq, with_usb=False):
@@ -83,6 +91,18 @@ class Platform(orangecart.Platform):
             soc.submodules.i2c = I2CMaster(self.request("i2c"))
         elif self.pmod == 'i2s':
             self.add_extension(orangecart.pmod_i2s)
+        if self.pmod2 is None:
+            pass
+        elif self.revision == "1.0":
+            raise ValueError("pmod2 not present on revision {}".format(self.revision))
+        elif self.pmod2 == 'gpio':
+            self.add_extension(orangecart.pmod2_gpio)
+        elif self.pmod2 == 'xgpio':
+            self.add_extension(orangecart.pmod2_xgpio)
+        elif self.pmod2 == 'spi':
+            self.add_extension(orangecart.pmod2_spi)
+        elif self.pmod2 == 'xspi':
+            self.add_extension(orangecart.pmod2_xspi)
 
     def finalise(self, output_dir):
         input_config = os.path.join(output_dir, "gateware", f"{self.name}.config")
