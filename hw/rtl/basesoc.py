@@ -16,6 +16,7 @@ from .intctrl import InterruptController
 from .mailbox import Mailbox
 from .ledpwm import LEDPWM
 from .modesnooper import ModeSnooper
+from .longpress import LongPressDetect
 
 
 class SoCIORegisters(IORegisters):
@@ -179,6 +180,11 @@ class BaseSoC(SoCCore):
         usr_btn = platform.request("usr_btn", loose=True)
         if usr_btn is not None:
             self.comb += self.bus_manager.reset_control.ext_reset.eq(~usr_btn)
+            if hasattr(platform, "add_self_reset"):
+                self_reset = platform.add_self_reset(self)
+                self.submodules.longpress = LongPressDetect(~usr_btn,
+                                                            self.sys_clk_freq)
+                self.comb += self_reset.eq(self.longpress.out)
 
         # RGB LED
         rgb_led = platform.request("rgb_led", loose=True)

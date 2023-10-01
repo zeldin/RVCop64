@@ -1,4 +1,4 @@
-from migen import Module, Signal, ClockDomain, If
+from migen import Module, Signal, ClockDomain, If, TSTriple
 
 from litex.soc.cores.bitbang import I2CMaster
 from litex.soc.cores.clock import ECP5PLL
@@ -80,6 +80,16 @@ class Platform(orangecart.Platform):
             self, self.request("hyperram"), soc.sys_clk_freq,
             self.hyperram_module(), soc.mem_map["main_ram"])
         return hyperram.size, hyperram.slave
+
+    def add_self_reset(self, soc):
+        rst = Signal()
+        ts = TSTriple()
+        soc.specials += ts.get_tristate(self.request("rst_n"))
+        soc.comb += [
+            ts.o.eq(0),
+            ts.oe.eq(rst)
+        ]
+        return rst
 
     def add_expansions(self, soc):
         if self.pmod == 'spi':
