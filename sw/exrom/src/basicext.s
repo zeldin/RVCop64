@@ -51,6 +51,7 @@ finlog = $bd7e
 
 datatk = $83
 remtk  = $8f
+deftk  = $96	
 printk = $99
 plustk = $aa
 pi     = $ff
@@ -339,6 +340,8 @@ neweval:
 	bcc @findig
 	sbc #'a'
 	bcc @snerr
+	cmp #deftk-'a'
+	beq @adddef
 	cmp #6
 	bcs @snerr
 @xdig:
@@ -354,11 +357,14 @@ neweval:
 @noexp:	
 	txa
 	and #$0f
+@moredig:
 	jsr finlog
 	jsr chrget
 	bcc @findig
 	sbc #'a'
 	bcc @fine
+	cmp #deftk-'a'
+	beq @adddef
 	cmp #6
 	bcc @xdig
 @fine:
@@ -367,7 +373,24 @@ neweval:
 @overflow:
 	jmp overr
 
-	
+@adddef:
+	lda facexp
+	beq @noexp2
+	adc #5
+	bcs @overflow
+	sta facexp
+@noexp2:
+	lda #($def>>6)
+	jsr finlog
+	lda facexp
+	clc
+	adc #6
+	bcs @overflow
+	sta facexp
+	lda #($def&$3f)
+	bne @moredig
+
+
 rv_reslst:
 	.byte "hel",'p'+$80
 	.byte "ter",'m'+$80

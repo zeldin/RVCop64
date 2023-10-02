@@ -230,6 +230,53 @@ copies the contents from any general purpose register or CSR into `X0` can
 be used to find the value of that register.
 
 
+### Interrupt controller
+
+The interrupt controller is used to enable or disable interrupts generated
+by the functions in the I/O region.  The interrupts can be enabled as
+either `IRQ` or `NMI`.
+
+| Address      | Register         |
+| ------------ | ---------------- |
+| $DE40        | `STATUS`         |
+| $DE41        | `IRQ_ENABLE`     |
+| $DE42        | `NMI_ENABLE`     |
+
+Currently the following interrupts are defined:
+
+| Number       | Function                |
+| ------------ | ----------------------- |
+| 0            | Mailbox                 |
+| 1-7          | Reserved for future use |
+
+#### `STATUS` register
+
+Reading this register queries which interrupts are currently active.
+The LSB corresponds to interrupt number 0, and the MSB to inerrupt
+number 7.  Writing the register clears the interrupt state for each
+function where the corresponding bit is written as `1`.  Bits written
+as `0` have no effect.
+
+The state of the interrupts can be queried even if neither `IRQ` or
+`NMI` is enabled for the interrupt in question.  To examine which interrupts
+are actually responsible for one of the signals being asserted, the
+value can be ANDed with the corresponding enable register.
+
+#### `IRQ_ENABLE` register
+
+Each bit in this read/write register which is set enables the assertion
+of `IRQ` when the corresponding interrupt is active.
+
+#### `NMI_ENABLE` register
+
+Each bit in this read/write register which is set enables the assertion
+of `NMI` when the corresponding interrupt is active.  Note that while
+the processing of `NMI` by the 6510/8502 is edge triggered, the signal
+will be kept asserted by the interrupt controller until the interrupt
+is cleared or disabled.  This is the same as the behaviour of `CIA 2`,
+but different from that of the `RESTORE` button.
+
+
 ### Mailbox
 
 The mailbox function provides a small shared memory area that both the
