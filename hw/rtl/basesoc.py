@@ -104,16 +104,19 @@ class BaseSoC(SoCCore):
 
         if hasattr(platform, "add_sram"):
             sram_size = platform.add_sram(self)
-            self.register_mem("sram", self.mem_map["sram"], self.sram.bus, sram_size)
+            self.bus.add_slave("sram", self.sram.bus,
+                               SoCRegion(self.mem_map["sram"], sram_size))
 
         if hasattr(platform, "add_mram"):
             mram_size, mram_slave = platform.add_mram(self)
-            self.bus.add_region("main_ram", SoCRegion(origin=self.mem_map["main_ram"], size=mram_size))
-            self.bus.add_slave("main_ram", mram_slave)
+            self.bus.add_slave("main_ram", mram_slave,
+                               SoCRegion(origin=self.mem_map["main_ram"], size=mram_size))
 
         self.integrated_rom_size = bios_size = 0xc000
         self.submodules.rom = wishbone.SRAM(bios_size, read_only=True, init=[])
-        self.register_rom(self.rom.bus, bios_size)
+        self.bus.add_slave("rom", self.rom.bus,
+                           SoCRegion(origin=self.cpu.reset_address,
+                                     size=bios_size))
 
         self.submodules.bus_manager = BusManager(
             platform.request("c64expansionport"),
@@ -145,8 +148,7 @@ class BaseSoC(SoCCore):
         c64dma_wb = wishbone.Interface(data_width=8)
         dma_region = SoCRegion(origin=self.mem_map.get("c64"), size=0x10000)
         self.submodules.c64dma_wb = Wishbone2BusDMA(c64dma_wb, self.bus_manager.dma_endpoint, base_address=dma_region.origin)
-        self.bus.add_region("c64", dma_region)
-        self.bus.add_slave("c64", c64dma_wb)
+        self.bus.add_slave("c64", c64dma_wb, dma_region)
         # Connect VUART
         if uart_name == "stream":
             self.comb += self.ioregs.vuart0.source.connect(self.uart.sink)
@@ -167,8 +169,7 @@ class BaseSoC(SoCCore):
         mailbox_region = SoCRegion(origin=self.mem_map.get("mailbox"),
                                    size=self.mailbox.size,
                                    cached=False)
-        self.bus.add_region("mailbox", mailbox_region)
-        self.bus.add_slave("mailbox", self.mailbox.wb)
+        self.bus.add_slave("mailbox", self.mailbox.wb, mailbox_region)
         if self.irq.enabled:
             self.irq.add("mailbox", use_loc_if_exists=True)
         # Debug
