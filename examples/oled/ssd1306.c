@@ -62,17 +62,17 @@ static const uint8_t ssd1306_initcmd[] = {
 
 static bool ssd1306_cmd(uint8_t cmd)
 {
-  return i2c_write(SSD1306_I2C_ADDR, 0, &cmd, 1);
+  return i2c_write(SSD1306_I2C_ADDR, 0, &cmd, 1, 1);
 }
 
 bool ssd1306_write_bitmap(const uint8_t *data, unsigned len)
 {
-  return i2c_write(SSD1306_I2C_ADDR, 0x40, data, len);
+  return i2c_write(SSD1306_I2C_ADDR, 0x40, data, len, 1);
 }
 
 bool ssd1306_init(void)
 {
-  return i2c_write(SSD1306_I2C_ADDR, 0, ssd1306_initcmd, sizeof(ssd1306_initcmd));
+  return i2c_write(SSD1306_I2C_ADDR, 0, ssd1306_initcmd, sizeof(ssd1306_initcmd), 1);
 }
 
 bool ssd1306_display_on(void)
@@ -95,7 +95,7 @@ bool ssd1306_clear(void)
   };
   unsigned i;
   memset(zeros, 0, sizeof(zeros));
-  if (!i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd)))
+  if (!i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd), 1))
     return false;
   for (i=0; i<8; i++)
     if (!ssd1306_write_bitmap(zeros, sizeof(zeros)))
@@ -111,7 +111,7 @@ bool ssd1306_hbitmap(unsigned page0, unsigned col0, unsigned npages,
     SSD1306_PAGEADDR, page0, page0+npages-1,
     SSD1306_COLUMNADDR, col0, col0+ncols-1,
   };
-  return i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd)) &&
+  return i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd), 1) &&
     ssd1306_write_bitmap(data, npages*ncols);
 }
 
@@ -125,7 +125,7 @@ bool ssd1306_set_display_offset(unsigned n)
   uint8_t cmd[] = {
     SSD1306_SETDISPLAYOFFSET, n
   };
-  return i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd));
+  return i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd), 1);
 }
 
 bool ssd1306_hscroll(bool left, unsigned start_page, unsigned end_page,
@@ -137,5 +137,5 @@ bool ssd1306_hscroll(bool left, unsigned start_page, unsigned end_page,
     0, start_page, speed, end_page, 0, 0xff,
     SSD1306_ACTIVATE_SCROLL
   };
-  return i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd));
+  return i2c_write(SSD1306_I2C_ADDR, 0, cmd, sizeof(cmd), 1);
 }
