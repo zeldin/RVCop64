@@ -113,6 +113,14 @@ class Platform(orangecart.Platform):
             self.add_extension(orangecart.pmod2_spi)
         elif self.pmod2 == 'xspi':
             self.add_extension(orangecart.pmod2_xspi)
+        if self.revision != "1.0":
+            tusb = self.request("tusb320")
+            soc.submodules.tusb320_i2c = I2CMaster(tusb)
+            if soc.irq.enabled:
+                soc.submodules.tusb320 = Module()
+                soc.tusb320.ev = Record([("irq", 1)])
+                soc.comb += soc.tusb320.ev.irq.eq(~tusb.int_n)
+                soc.irq.add("tusb320", use_loc_if_exists=True)
 
     def finalise(self, output_dir):
         input_config = os.path.join(output_dir, "gateware", f"{self.name}.config")

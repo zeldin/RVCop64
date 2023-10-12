@@ -55,6 +55,7 @@ class BaseSoC(SoCCore):
         "usb":            7,
         "i2c":            8,
         "uart2":          9,
+        "tusb320_i2c":    10,
     }
 
     interrupt_map = {
@@ -63,6 +64,7 @@ class BaseSoC(SoCCore):
         "usb":            2,
         "uart2":          3,
         "mailbox":        4,
+        "tusb320":        5,
     }
 
     SoCCore.mem_map = {
