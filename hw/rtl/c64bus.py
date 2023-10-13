@@ -125,6 +125,10 @@ class BusManager(Module):
         self._export_signal(expport, self.irq_out, "irq_out")
         self.nmi_out = Signal()
         self._export_signal(expport, self.nmi_out, "nmi_out")
+        self.irq_in = Signal()
+        self._import_signal(expport, self.irq_in, "irq_in")
+        self.nmi_in = Signal()
+        self._import_signal(expport, self.nmi_in, "nmi_in")
 
         # Bus direction setup
 

@@ -50,7 +50,7 @@ class Mailbox(Module):
         ]
         self.sync += [
             If(iobus_irq_clear | self.irq_ext_clear, self.irq.eq(0)),
-            If(wb_sel,
+            If(wb_sel & ~self.wb.ack,
                self.wb.ack.eq(1),
                If(self.wb.we,
                   If((self.wb.adr == iobus_irq_addr[2:2+len(self.wb.adr)]) &

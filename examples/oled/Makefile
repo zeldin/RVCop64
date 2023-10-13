@@ -1,6 +1,7 @@
 HW_DIR?=../../hw
 BUILD_DIR?=$(HW_DIR)/build
 SOC_DIRECTORY?=$(HW_DIR)/deps/litex/litex/soc
+CSR_CSV?=$(BUILD_DIR)/csr.csv
 
 UART?=/dev/ttyUSB1
 
@@ -52,6 +53,6 @@ clean:
 	$(RM) $(OBJECTS) demo.elf demo.bin .*~ *~
 
 run: demo.bin
-	python -m litex.tools.litex_term --speed 115200 --serial-boot --kernel $< $(UART)
+	python -m litex.tools.litex_term --speed 115200 --serial-boot --kernel $< $(if $(findstring crossover,$(UART)),--csr-csv $(CSR_CSV),) $(UART)
 
 .PHONY: all clean
