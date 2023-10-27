@@ -91,7 +91,7 @@ def main():
 
     soc = BaseSoC(platform, cpu_type=cpu_type, cpu_variant=cpu_variant,
                   uart_name="stream" if args.uart is None else args.uart,
-                  uart2_name="stream" if args.uart == "vuart" else args.uart2,
+                  uart2_name="stream" if args.uart2 == "vuart" else args.uart2,
                   usb=args.usb, with_jtagbone=args.jtag_debug,
                   with_uartbone=args.serial_debug,
                   uartbone_baudrate=args.serial_debug_baudrate,
