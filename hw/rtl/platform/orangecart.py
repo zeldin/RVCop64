@@ -157,7 +157,7 @@ class _CRG(Module):
         pll.register_clkin(clk48_raw, 48e6)
         pll.create_clkout(self.cd_sys, sys_clk_freq, margin = 0)
         pll.create_clkout(self.cd_sys2x, 2*sys_clk_freq, margin = 0)
-        pll.create_clkout(self.cd_sys2x_90, 2*sys_clk_freq, margin = 0, phase = 195)
+        pll.create_clkout(self.cd_sys2x_90, 2*sys_clk_freq, margin = 0, phase = 210)
 
         if with_usb:
             self.submodules.pll2 = pll2 = ECP5PLL()
